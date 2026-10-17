@@ -1,0 +1,308 @@
+/**
+ * =============================================================================
+ * iScratch - Telemetry HUD, 3D Orientation Cube & Serial Monitor Styles
+ * =============================================================================
+ */
+
+/* Telemetry Grid */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.sensor-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sensor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sensor-value-large {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.sensor-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+/* 3D Attitude Indicator (Arduino Nano 33 BLE Sense IMU) */
+.attitude-box-container {
+  grid-column: span 2;
+  background: linear-gradient(135deg, #1E293B, #0F172A);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  perspective: 600px;
+}
+
+.scene-3d {
+  width: 90px;
+  height: 90px;
+  perspective: 400px;
+}
+
+.cube-3d {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.05s linear;
+}
+
+.cube-face {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border: 2px solid #00878F;
+  background: rgba(0, 135, 143, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  color: #FFFFFF;
+  box-shadow: inset 0 0 10px rgba(0, 135, 143, 0.5);
+}
+
+.cube-face.front  { transform: rotateY(0deg) translateZ(45px); background: rgba(0, 135, 143, 0.6); }
+.cube-face.back   { transform: rotateY(180deg) translateZ(45px); }
+.cube-face.right  { transform: rotateY(90deg) translateZ(45px); }
+.cube-face.left   { transform: rotateY(-90deg) translateZ(45px); }
+.cube-face.top    { transform: rotateX(90deg) translateZ(45px); background: rgba(76, 151, 255, 0.6); }
+.cube-face.bottom { transform: rotateX(-90deg) translateZ(45px); }
+
+.imu-readout-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.imu-axis-val {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: monospace;
+}
+
+/* Sound VU Meter */
+.meter-bar-container {
+  height: 8px;
+  background: #E2E8F0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10B981, #F59E0B, #EF4444);
+  border-radius: 4px;
+  transition: width 0.08s ease-out;
+}
+
+/* Color Swatch */
+.color-preview-box {
+  width: 100%;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #CBD5E1;
+  background-color: #000000;
+  margin-top: 4px;
+  transition: background-color 0.1s ease;
+}
+
+/* Gesture Badge */
+.gesture-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #E2E8F0;
+  color: #475569;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.gesture-pill.active {
+  background: #00878F;
+  color: #FFFFFF;
+  animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Actuator Quick Controls */
+.actuator-controls {
+  grid-column: span 2;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-toggle-led {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-toggle-led.active {
+  background: #FFAB19;
+  color: #2C1B00;
+  border-color: #FFA000;
+}
+
+/* Teachable Machine Panel */
+.tm-panel-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tm-url-input-group {
+  display: flex;
+  gap: 6px;
+}
+
+.tm-url-input-group input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.tm-webcam-preview {
+  width: 100%;
+  height: 200px;
+  background: #0F172A;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+#tm-webcam-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tm-classes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tm-class-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.tm-class-info {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.tm-bar-bg {
+  height: 10px;
+  background: #E2E8F0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.tm-bar-fill {
+  height: 100%;
+  background: #4285F4;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+
+/* Serial Monitor Terminal */
+.serial-monitor-box {
+  display: flex;
+  flex-direction: column;
+  height: 380px;
+  gap: 8px;
+}
+
+.serial-terminal-log {
+  flex: 1;
+  background: #0F172A;
+  color: #00E676;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 11px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.serial-terminal-log .log-out {
+  color: #38BDF8;
+}
+
+.serial-terminal-log .log-err {
+  color: #F87171;
+}
+
+.serial-send-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.serial-send-bar input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: monospace;
+}

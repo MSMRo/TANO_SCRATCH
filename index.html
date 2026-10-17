@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TanoScratch - Scratch + Arduino Nano 33 BLE Sense & Teachable Machine</title>
+  <link rel="icon" type="image/svg+xml" href="assets/tanoscratch-logo.svg">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/iscratch.css">
+  <link rel="stylesheet" href="css/telemetry.css">
+
+  <!-- Core Dependencies (Local Vendor with CDN Fallbacks) -->
+  <script src="vendor/blockly/blockly.min.js"></script>
+  <script src="vendor/blockly/blocks_compressed.js"></script>
+  <script src="vendor/blockly/javascript_compressed.js"></script>
+  <script src="vendor/blockly/es.js"></script>
+  <script src="vendor/tfjs/tf.min.js"></script>
+  <script src="vendor/teachablemachine/teachablemachine-image.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navbar Header -->
+  <header class="iscratch-header">
+    <div class="brand-section">
+      <img src="assets/tanoscratch-logo.svg" alt="TanoScratch Logo" class="brand-logo-img">
+      
+      <!-- Project Menus -->
+      <div class="header-menu">
+        <button class="header-btn" id="btn-save-project" title="Descargar archivo de proyecto .tanoscratch">
+          💾 Guardar
+        </button>
+        <button class="header-btn" id="btn-load-project" title="Abrir archivo de proyecto .tanoscratch">
+          📂 Abrir
+        </button>
+        <input type="file" id="project-file-input" accept=".tanoscratch,.iscratch,.json" style="display: none;">
+
+        <select class="header-btn" id="examples-select" style="padding: 5px 8px; background: rgba(0,0,0,0.2);">
+          <option value="">📁 Proyectos de Ejemplo...</option>
+          <option value="starter">🏃 Mover a Tano (Inicio)</option>
+          <option value="imu_tilt">🎮 Control de Tano con IMU</option>
+          <option value="gesture_sound">👋 Gestos y Tonos Sonoros</option>
+          <option value="color_lamp">🌈 Lámpara de Color RGB</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Center Run / Stop Controls -->
+    <div class="header-center-controls">
+      <button class="flag-btn" id="btn-run" title="Ejecutar Programa (Bandera Verde)">🚩</button>
+      <button class="stop-btn" id="btn-stop" title="Detener Programa">🛑</button>
+    </div>
+
+    <!-- Right Controls: Arduino Web Serial & Settings -->
+    <div class="brand-section">
+      <div class="serial-pill">
+        <span class="serial-status-dot" id="serial-status-dot"></span>
+        <span id="serial-status-text">Desconectado</span>
+      </div>
+
+      <select class="header-btn" id="baud-select" style="background: rgba(0,0,0,0.2);">
+        <option value="115200" selected>115200 Baud</option>
+        <option value="57600">57600 Baud</option>
+        <option value="9600">9600 Baud</option>
+      </select>
+
+      <button class="header-btn accent-btn" id="btn-connect-arduino" title="Conectar mediante Web Serial API">
+        🔌 Conectar Arduino
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Work Area (3-Column Layout) -->
+  <main class="iscratch-main">
+    
+    <!-- Left & Center: Blockly Workspace Area -->
+    <div class="blockly-container">
+      <div id="blocklyDiv"></div>
+    </div>
+
+    <!-- Right Column: Stage & Telemetry Panel -->
+    <aside class="iscratch-stage-panel">
+      
+      <!-- Stage Screen Card -->
+      <div class="stage-card">
+        <div class="stage-wrapper">
+          <canvas id="stageCanvas" width="480" height="360"></canvas>
+        </div>
+      </div>
+
+      <!-- Sprite Properties Toolbar -->
+      <div class="sprite-props-bar">
+        <div class="sprite-prop-group">
+          <label>Objeto:</label>
+          <span style="font-weight: 700; color: #00878F;">Tano</span>
+        </div>
+        <div class="sprite-prop-group">
+          <label>x:</label>
+          <input type="text" id="sprite-x" value="0" readonly>
+        </div>
+        <div class="sprite-prop-group">
+          <label>y:</label>
+          <input type="text" id="sprite-y" value="0" readonly>
+        </div>
+        <div class="sprite-prop-group">
+          <label>Dir:</label>
+          <input type="text" id="sprite-dir" value="90" readonly>
+        </div>
+        <div class="sprite-prop-group">
+          <label>Tam:</label>
+          <input type="text" id="sprite-size" value="100" readonly>
+        </div>
+        <button id="btn-reset-sprite" class="header-btn" title="Restablecer posición de Tano al centro (0, 0)" style="padding: 2px 8px; font-size: 11px; margin-left: auto; background: #00878F; color: #FFF; border-radius: 4px;">🎯 Centrar</button>
+      </div>
+
+      <!-- Tab Navigation for Lower Right Inspector -->
+      <div class="panel-tabs">
+        <button class="panel-tab-btn active" data-tab="tab-telemetry">
+          📡 Sensores Nano 33
+        </button>
+        <button class="panel-tab-btn" data-tab="tab-teachable-machine">
+          🧠 Teachable Machine
+        </button>
+        <button class="panel-tab-btn" data-tab="tab-serial-terminal">
+          💻 Monitor Serial
+        </button>
+      </div>
+
+      <!-- Tab 1: Live Arduino Nano 33 BLE Sense Telemetry -->
+      <div class="tab-pane active" id="tab-telemetry">
+        <div class="telemetry-grid">
+          
+          <!-- 3D IMU Attitude Box -->
+          <div class="attitude-box-container">
+            <div class="scene-3d">
+              <div class="cube-3d" id="cube-3d">
+                <div class="cube-face front">Tano</div>
+                <div class="cube-face back">NANO</div>
+                <div class="cube-face right">X+</div>
+                <div class="cube-face left">X-</div>
+                <div class="cube-face top">TOP</div>
+                <div class="cube-face bottom">BOT</div>
+              </div>
+            </div>
+            <div class="imu-readout-col">
+              <div style="font-weight: 700; color: #00C4B4; margin-bottom: 2px;">IMU 9-Ejes (g)</div>
+              <div class="imu-axis-val"><span>Ax:</span><span id="ax-val">0.00</span></div>
+              <div class="imu-axis-val"><span>Ay:</span><span id="ay-val">0.00</span></div>
+              <div class="imu-axis-val"><span>Az:</span><span id="az-val">1.00</span></div>
+            </div>
+          </div>
+
+          <!-- Environmental: Temperature -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Temperatura</span>
+              <span>🌡️</span>
+            </div>
+            <div class="sensor-value-large">
+              <span id="val-temp">--</span>
+              <span class="sensor-unit">°C</span>
+            </div>
+          </div>
+
+          <!-- Environmental: Humidity -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Humedad</span>
+              <span>💧</span>
+            </div>
+            <div class="sensor-value-large">
+              <span id="val-hum">--</span>
+              <span class="sensor-unit">%</span>
+            </div>
+          </div>
+
+          <!-- Environmental: Pressure -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Presión</span>
+              <span>⏲️</span>
+            </div>
+            <div class="sensor-value-large">
+              <span id="val-press">--</span>
+              <span class="sensor-unit">hPa</span>
+            </div>
+          </div>
+
+          <!-- Microphone / Sound Level -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Micrófono PDM</span>
+              <span>🎤</span>
+            </div>
+            <div class="sensor-value-large">
+              <span id="val-sound">0</span>
+              <span class="sensor-unit">RMS</span>
+            </div>
+            <div class="meter-bar-container">
+              <div class="meter-fill" id="sound-fill"></div>
+            </div>
+          </div>
+
+          <!-- APDS9960 Color Sensor -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Color RGBC</span>
+              <span id="val-color-text" style="font-size: 9px; font-weight: normal;">R:0 G:0 B:0</span>
+            </div>
+            <div class="color-preview-box" id="color-swatch"></div>
+          </div>
+
+          <!-- APDS9960 Proximity & Gesture -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Proximidad</span>
+              <span id="val-prox">--</span>
+            </div>
+            <div class="meter-bar-container">
+              <div class="meter-fill" id="prox-fill" style="background: #3B82F6;"></div>
+            </div>
+            <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 10px; font-weight: 700; color: #64748B;">GESTO:</span>
+              <span class="gesture-pill" id="val-gesture">NONE</span>
+            </div>
+          </div>
+
+          <!-- Actuator Controls: LED D13 & RGB -->
+          <div class="actuator-controls">
+            <button class="btn-toggle-led" id="btn-quick-led">LED D13: OFF</button>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 700; color: #475569;">LED RGB:</span>
+              <input type="color" id="rgb-color-picker" value="#000000" style="cursor: pointer; border: none; width: 28px; height: 28px; border-radius: 4px;">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tab 2: Teachable Machine Panel -->
+      <div class="tab-pane" id="tab-teachable-machine">
+        <div class="tm-panel-box">
+          <div class="tm-url-input-group">
+            <input type="text" id="tm-model-url" placeholder="https://teachablemachine.withgoogle.com/models/.../">
+            <button class="header-btn" id="btn-load-tm-model" style="background: #4285F4; color: #FFF;">Cargar</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="header-btn accent-btn" id="btn-toggle-webcam" style="flex: 1;">📷 Iniciar Cámara</button>
+          </div>
+          <div id="tm-status-msg" style="font-size: 11px; color: #64748B;">Ningún modelo cargado aún.</div>
+          
+          <div class="tm-webcam-preview">
+            <canvas id="tm-webcam-canvas" width="240" height="240"></canvas>
+          </div>
+
+          <div class="tm-classes-container" id="tm-classes-list">
+            <!-- Dynamic Class Confidence Bars -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Serial Monitor Terminal -->
+      <div class="tab-pane" id="tab-serial-terminal">
+        <div class="serial-monitor-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #64748B;">FLUJO DE DATOS SERIAL (115200)</span>
+            <button class="header-btn" id="btn-clear-log" style="font-size: 10px; padding: 2px 6px; background: #64748B;">Limpiar</button>
+          </div>
+          <div class="serial-terminal-log" id="serial-terminal-log">
+            [Sistema] Esperando conexión Web Serial...
+          </div>
+          <div class="serial-send-bar">
+            <input type="text" id="serial-send-input" placeholder='{"led":1} o comando de texto...'>
+            <button class="header-btn" id="btn-serial-send" style="background: #00878F; color: #FFF;">Enviar</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Application Core Scripts -->
+  <script src="js/webserial_manager.js"></script>
+  <script src="js/tm_manager.js"></script>
+  <script src="js/stage_runtime.js"></script>
+  <script src="js/blocks_scratch_core.js"></script>
+  <script src="js/blocks_nano33ble.js"></script>
+  <script src="js/blocks_tm.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

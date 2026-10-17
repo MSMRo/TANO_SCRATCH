@@ -1,0 +1,10 @@
+{
+  "name": "tanoscratch",
+  "version": "1.0.0",
+  "description": "TanoScratch - Scratch + Arduino Nano 33 BLE Sense & Teachable Machine",
+  "dependencies": {
+    "@teachablemachine/image": "^0.8.5",
+    "@tensorflow/tfjs": "^4.22.0",
+    "blockly": "^13.4.0"
+  }
+}

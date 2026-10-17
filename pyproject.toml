@@ -1,0 +1,17 @@
+[project]
+name = "tanoscratch"
+version = "0.1.0"
+description = "TanoScratch - Scratch + Arduino Nano 33 BLE Sense & Teachable Machine"
+readme = "README.md"
+authors = [
+    { name = "MSMRo", email = "moises.meza@upch.pe" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+tanoscratch = "tanoscratch:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

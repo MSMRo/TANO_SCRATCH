@@ -1,0 +1,661 @@
+/**
+ * =============================================================================
+ * iScratch - Main Application Orchestration
+ * =============================================================================
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Compatibility bridge for Blockly JavaScript generator (v10+)
+  if (window.Blockly && window.Blockly.JavaScript) {
+    const jsGen = window.Blockly.JavaScript;
+    if (!jsGen.forBlock) jsGen.forBlock = Object.create(null);
+    const Order = (window.javascript && window.javascript.Order) || {};
+    for (const key in Order) {
+      jsGen['ORDER_' + key] = Order[key];
+    }
+    if (jsGen.ORDER_ATOMIC === undefined) jsGen.ORDER_ATOMIC = 0;
+    if (jsGen.ORDER_NONE === undefined) jsGen.ORDER_NONE = 99;
+  }
+
+  // 1. Initialize Stage Runtime
+  window.iScratchRuntime = new StageRuntime('stageCanvas');
+
+  // 2. Define Toolbox XML for Blockly
+  const toolboxXml = `
+    <xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none">
+      <!-- 🔵 MOVIMIENTO -->
+      <category name="Movimiento" colour="#4C97FF">
+        <block type="scratch_move">
+          <value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+        </block>
+        <block type="scratch_turn_right">
+          <value name="DEGREES"><shadow type="math_number"><field name="NUM">15</field></shadow></value>
+        </block>
+        <block type="scratch_turn_left">
+          <value name="DEGREES"><shadow type="math_number"><field name="NUM">15</field></shadow></value>
+        </block>
+        <block type="scratch_goto">
+          <value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+          <value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+        </block>
+        <block type="scratch_point_dir">
+          <value name="DIRECTION"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+        </block>
+      </category>
+
+      <!-- 🟣 APARIENCIA -->
+      <category name="Apariencia" colour="#9966FF">
+        <block type="scratch_say_for_secs">
+          <value name="TEXT"><shadow type="text"><field name="TEXT">¡Hola!</field></shadow></value>
+          <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+        </block>
+        <block type="scratch_say">
+          <value name="TEXT"><shadow type="text"><field name="TEXT">¡Hola Mundo!</field></shadow></value>
+        </block>
+      </category>
+
+      <!-- 🔊 SONIDO -->
+      <category name="Sonido" colour="#CF63CF">
+        <block type="scratch_play_sound">
+          <value name="FREQ"><shadow type="math_number"><field name="NUM">440</field></shadow></value>
+          <value name="DURATION"><shadow type="math_number"><field name="NUM">0.2</field></shadow></value>
+        </block>
+      </category>
+
+      <!-- 🟡 EVENTOS -->
+      <category name="Eventos" colour="#FFBF00">
+        <block type="scratch_when_flag"></block>
+        <block type="nano33_when_gesture"></block>
+        <block type="tm_when_class">
+          <value name="CLASS_NAME"><shadow type="text"><field name="TEXT">Clase 1</field></shadow></value>
+        </block>
+      </category>
+
+      <!-- 🟠 CONTROL -->
+      <category name="Control" colour="#FFAB19">
+        <block type="scratch_wait">
+          <value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+        </block>
+        <block type="scratch_repeat">
+          <value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+        </block>
+        <block type="scratch_forever"></block>
+        <block type="controls_if"></block>
+        <block type="controls_ifelse"></block>
+      </category>
+
+      <!-- 🔷 SENSORES Y CONDICIONES -->
+      <category name="Sensores" colour="#5CB1D6">
+        <block type="logic_boolean"></block>
+        <block type="logic_compare"></block>
+        <block type="logic_operation"></block>
+        <block type="logic_negate"></block>
+      </category>
+
+      <!-- 🟢 OPERADORES MATEMÁTICOS -->
+      <category name="Operadores" colour="#59C059">
+        <block type="math_number"><field name="NUM">0</field></block>
+        <block type="math_arithmetic"></block>
+        <block type="math_random_int">
+          <value name="FROM"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+          <value name="TO"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+        </block>
+        <block type="text"><field name="TEXT"></field></block>
+        <block type="text_join"></block>
+      </category>
+
+      <!-- 🟧 VARIABLES -->
+      <category name="Variables" colour="#FF8C1A" custom="VARIABLE"></category>
+
+      <!-- 🔴 ARDUINO NANO 33 BLE SENSE -->
+      <category name="Arduino Nano 33 BLE" colour="#00878F">
+        <block type="nano33_connect">
+          <field name="BAUD">115200</field>
+        </block>
+        <block type="nano33_disconnect"></block>
+        <block type="nano33_is_connected"></block>
+        <block type="nano33_get_temp"></block>
+        <block type="nano33_get_hum"></block>
+        <block type="nano33_get_press"></block>
+        <block type="nano33_get_accel"></block>
+        <block type="nano33_get_gyro"></block>
+        <block type="nano33_get_mag"></block>
+        <block type="nano33_get_color"></block>
+        <block type="nano33_get_prox"></block>
+        <block type="nano33_get_gesture"></block>
+        <block type="nano33_get_sound"></block>
+        <block type="nano33_set_led"></block>
+        <block type="nano33_set_rgb">
+          <value name="R"><shadow type="math_number"><field name="NUM">255</field></shadow></value>
+          <value name="G"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+          <value name="B"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+        </block>
+        <block type="nano33_send_serial">
+          <value name="TEXT"><shadow type="text"><field name="TEXT">{"ping":1}</field></shadow></value>
+        </block>
+        <block type="nano33_when_gesture"></block>
+      </category>
+
+      <!-- 🧠 TEACHABLE MACHINE -->
+      <category name="Teachable Machine" colour="#4285F4">
+        <block type="tm_load_model">
+          <value name="URL"><shadow type="text"><field name="TEXT">https://teachablemachine.withgoogle.com/models/v1/</field></shadow></value>
+        </block>
+        <block type="tm_start_webcam"></block>
+        <block type="tm_stop_webcam"></block>
+        <block type="tm_is_model_loaded"></block>
+        <block type="tm_get_top_class"></block>
+        <block type="tm_get_top_confidence"></block>
+        <block type="tm_get_class_confidence">
+          <value name="CLASS_NAME"><shadow type="text"><field name="TEXT">Clase 1</field></shadow></value>
+        </block>
+        <block type="tm_is_class">
+          <value name="CLASS_NAME"><shadow type="text"><field name="TEXT">Clase 1</field></shadow></value>
+        </block>
+        <block type="tm_when_class">
+          <value name="CLASS_NAME"><shadow type="text"><field name="TEXT">Clase 1</field></shadow></value>
+        </block>
+      </category>
+    </xml>
+  `;
+
+  // 3. Inject Blockly Workspace
+  const blocklyDiv = document.getElementById('blocklyDiv');
+  const workspace = Blockly.inject(blocklyDiv, {
+    toolbox: toolboxXml,
+    media: 'https://unpkg.com/blockly/media/',
+    scrollbars: true,
+    trashcan: true,
+    zoom: {
+      controls: true,
+      wheel: true,
+      startScale: 0.9,
+      maxScale: 2.0,
+      minScale: 0.4,
+      scaleSpeed: 1.1
+    },
+    grid: {
+      spacing: 20,
+      length: 2,
+      colour: '#E2E8F0',
+      snap: true
+    }
+  });
+  window.iScratchWorkspace = workspace;
+
+  // Window resize handler
+  window.addEventListener('resize', () => {
+    Blockly.svgResize(workspace);
+  });
+
+  // 4. Setup Execution Buttons (Green Flag & Red Stop)
+  const flagBtn = document.getElementById('btn-run');
+  const stopBtn = document.getElementById('btn-stop');
+
+  flagBtn.addEventListener('click', () => {
+    try {
+      if (window.iScratchRuntime) {
+        window.iScratchRuntime.unlockAudio();
+      }
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      console.log('--- iScratch: Ejecutando Programa ---\n', code);
+      flagBtn.classList.add('running');
+      window.iScratchRuntime.start(code);
+    } catch (err) {
+      console.error('Error al generar o ejecutar código:', err);
+      flagBtn.classList.remove('running');
+      alert('Error en los bloques de código: ' + err.message);
+    }
+  });
+
+  stopBtn.addEventListener('click', () => {
+    flagBtn.classList.remove('running');
+    window.iScratchRuntime.stop();
+  });
+
+  const btnResetSprite = document.getElementById('btn-reset-sprite');
+  if (btnResetSprite) {
+    btnResetSprite.addEventListener('click', () => {
+      window.iScratchRuntime.resetSprite();
+    });
+  }
+
+  // 5. Connect Arduino Nano 33 BLE Sense
+  const connectBtn = document.getElementById('btn-connect-arduino');
+  const serialDot = document.getElementById('serial-status-dot');
+  const serialStatusText = document.getElementById('serial-status-text');
+  const baudSelect = document.getElementById('baud-select');
+
+  connectBtn.addEventListener('click', async () => {
+    if (window.iScratchSerial.connected) {
+      await window.iScratchSerial.disconnect();
+    } else {
+      const baud = baudSelect ? baudSelect.value : 115200;
+      await window.iScratchSerial.connect(baud);
+    }
+  });
+
+  window.iScratchSerial.onStatusChange((status, details) => {
+    if (status === 'connected') {
+      serialDot.className = 'serial-status-dot connected';
+      serialStatusText.textContent = 'Nano 33 BLE Conectado';
+      connectBtn.textContent = 'Desconectar Arduino';
+      connectBtn.classList.add('accent-btn');
+    } else if (status === 'connecting') {
+      serialDot.className = 'serial-status-dot connecting';
+      serialStatusText.textContent = 'Conectando...';
+    } else {
+      serialDot.className = 'serial-status-dot';
+      serialStatusText.textContent = 'Desconectado';
+      connectBtn.textContent = 'Conectar Arduino';
+      connectBtn.classList.remove('accent-btn');
+    }
+  });
+
+  // 6. Live Telemetry HUD Updates
+  const valTemp = document.getElementById('val-temp');
+  const valHum = document.getElementById('val-hum');
+  const valPress = document.getElementById('val-press');
+  const valSound = document.getElementById('val-sound');
+  const soundFill = document.getElementById('sound-fill');
+  const valProx = document.getElementById('val-prox');
+  const proxFill = document.getElementById('prox-fill');
+  const valGesture = document.getElementById('val-gesture');
+  const colorSwatch = document.getElementById('color-swatch');
+  const valColorText = document.getElementById('val-color-text');
+  const cube = document.getElementById('cube-3d');
+  const axVal = document.getElementById('ax-val');
+  const ayVal = document.getElementById('ay-val');
+  const azVal = document.getElementById('az-val');
+
+  window.iScratchSerial.onTelemetry((t) => {
+    if (valTemp) valTemp.textContent = (t.t !== null && t.t !== undefined && !isNaN(t.t)) ? Number(t.t).toFixed(1) : '--';
+    if (valHum) valHum.textContent = (t.h !== null && t.h !== undefined && !isNaN(t.h)) ? Number(t.h).toFixed(1) : '--';
+    if (valPress) valPress.textContent = (t.p !== null && t.p !== undefined && !isNaN(t.p)) ? Number(t.p).toFixed(1) : '--';
+
+    // Sound Meter
+    if (valSound) valSound.textContent = t.sound !== undefined ? t.sound : 0;
+    if (soundFill) soundFill.style.width = Math.min(100, Math.max(0, t.sound || 0)) + '%';
+
+    // Proximity
+    if (valProx) valProx.textContent = t.prox !== undefined ? t.prox : '--';
+    if (proxFill) {
+      // 0 is closest (100%), 255 is far (0%)
+      const pct = Math.max(0, Math.min(100, Math.round(((255 - (t.prox || 255)) / 255) * 100)));
+      proxFill.style.width = pct + '%';
+    }
+
+    // Color Swatch
+    if (colorSwatch && (t.r !== undefined)) {
+      colorSwatch.style.backgroundColor = `rgb(${t.r}, ${t.g}, ${t.b})`;
+    }
+    if (valColorText && (t.r !== undefined)) {
+      valColorText.textContent = `R:${t.r} G:${t.g} B:${t.b}`;
+    }
+
+    // Gesture
+    if (valGesture) {
+      const g = window.iScratchSerial.getRecentGesture();
+      valGesture.textContent = g;
+      if (g !== 'NONE') {
+        valGesture.classList.add('active');
+      } else {
+        valGesture.classList.remove('active');
+      }
+    }
+
+    // 3D Attitude Cube (Calculate pitch and roll from accelerometer)
+    if (cube && t.ax !== undefined) {
+      const pitch = Math.atan2(t.ay, Math.sqrt(t.ax * t.ax + t.az * t.az)) * (180 / Math.PI);
+      const roll = Math.atan2(-t.ax, t.az) * (180 / Math.PI);
+      cube.style.transform = `rotateX(${pitch.toFixed(1)}deg) rotateY(${roll.toFixed(1)}deg)`;
+
+      if (axVal) axVal.textContent = t.ax.toFixed(2);
+      if (ayVal) ayVal.textContent = t.ay.toFixed(2);
+      if (azVal) azVal.textContent = t.az.toFixed(2);
+    }
+  });
+
+  // 7. Actuator Quick Test Controls
+  let ledBuiltinState = false;
+  const btnToggleLed = document.getElementById('btn-quick-led');
+  if (btnToggleLed) {
+    btnToggleLed.addEventListener('click', () => {
+      ledBuiltinState = !ledBuiltinState;
+      window.iScratchSerial.setBuiltinLed(ledBuiltinState);
+      btnToggleLed.classList.toggle('active', ledBuiltinState);
+      btnToggleLed.textContent = ledBuiltinState ? 'LED D13: ON' : 'LED D13: OFF';
+    });
+  }
+
+  const rgbColorPicker = document.getElementById('rgb-color-picker');
+  if (rgbColorPicker) {
+    rgbColorPicker.addEventListener('input', (e) => {
+      const hex = e.target.value;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      window.iScratchSerial.setRgbLed(r, g, b);
+    });
+  }
+
+  // 8. Serial Monitor Console
+  const terminalLog = document.getElementById('serial-terminal-log');
+  const serialSendInput = document.getElementById('serial-send-input');
+  const btnSerialSend = document.getElementById('btn-serial-send');
+  const btnClearLog = document.getElementById('btn-clear-log');
+
+  window.iScratchSerial.onRawLog((text, type) => {
+    if (!terminalLog) return;
+    const line = document.createElement('div');
+    line.className = type === 'out' ? 'log-out' : 'log-in';
+    const time = new Date().toLocaleTimeString();
+    line.textContent = `[${time}] ${type === 'out' ? '>> ' : '<< '} ${text}`;
+    terminalLog.appendChild(line);
+
+    // Keep log reasonable in size (max 200 lines)
+    if (terminalLog.children.length > 200) {
+      terminalLog.removeChild(terminalLog.firstChild);
+    }
+    terminalLog.scrollTop = terminalLog.scrollHeight;
+  });
+
+  if (btnSerialSend && serialSendInput) {
+    const doSend = () => {
+      const msg = serialSendInput.value.trim();
+      if (msg) {
+        window.iScratchSerial.send(msg);
+        serialSendInput.value = '';
+      }
+    };
+    btnSerialSend.addEventListener('click', doSend);
+    serialSendInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doSend();
+    });
+  }
+
+  if (btnClearLog && terminalLog) {
+    btnClearLog.addEventListener('click', () => {
+      terminalLog.innerHTML = '';
+    });
+  }
+
+  // 9. Teachable Machine Controls
+  const tmModelUrlInput = document.getElementById('tm-model-url');
+  const btnLoadTmModel = document.getElementById('btn-load-tm-model');
+  const btnToggleWebcam = document.getElementById('btn-toggle-webcam');
+  const tmStatusMsg = document.getElementById('tm-status-msg');
+  const tmClassesList = document.getElementById('tm-classes-list');
+  const tmCanvas = document.getElementById('tm-webcam-canvas');
+
+  if (btnLoadTmModel) {
+    btnLoadTmModel.addEventListener('click', async () => {
+      const url = tmModelUrlInput.value.trim();
+      if (!url) return alert('Ingresa una URL válida de Teachable Machine');
+      btnLoadTmModel.disabled = true;
+      btnLoadTmModel.textContent = 'Cargando...';
+      const success = await window.iScratchTM.loadModel(url);
+      btnLoadTmModel.disabled = false;
+      btnLoadTmModel.textContent = 'Cargar Modelo';
+      if (success) {
+        tmStatusMsg.textContent = `Modelo cargado con ${window.iScratchTM.classes.length} clases.`;
+        _renderTmClassRows(window.iScratchTM.classes);
+      }
+    });
+  }
+
+  if (btnToggleWebcam) {
+    btnToggleWebcam.addEventListener('click', async () => {
+      if (window.iScratchTM.isClassifying) {
+        window.iScratchTM.stopWebcam();
+        btnToggleWebcam.textContent = '📷 Iniciar Cámara';
+      } else {
+        await window.iScratchTM.startWebcam(tmCanvas);
+        btnToggleWebcam.textContent = '⏹️ Detener Cámara';
+      }
+    });
+  }
+
+  function _renderTmClassRows(classes) {
+    if (!tmClassesList) return;
+    tmClassesList.innerHTML = '';
+    classes.forEach((c) => {
+      const row = document.createElement('div');
+      row.className = 'tm-class-row';
+      row.innerHTML = `
+        <div class="tm-class-info">
+          <span>${c}</span>
+          <span id="tm-val-${c}">0%</span>
+        </div>
+        <div class="tm-bar-bg">
+          <div class="tm-bar-fill" id="tm-bar-${c}"></div>
+        </div>
+      `;
+      tmClassesList.appendChild(row);
+    });
+  }
+
+  window.iScratchTM.onPrediction((predictions) => {
+    predictions.forEach((p) => {
+      const valEl = document.getElementById(`tm-val-${p.className}`);
+      const barEl = document.getElementById(`tm-bar-${p.className}`);
+      const pct = Math.round(p.probability * 100);
+      if (valEl) valEl.textContent = `${pct}%`;
+      if (barEl) barEl.style.width = `${pct}%`;
+    });
+  });
+
+  // 10. Tab Switching for Lower Right
+  const tabBtns = document.querySelectorAll('.panel-tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      tabPanes.forEach((p) => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const targetPane = document.getElementById(btn.dataset.tab);
+      if (targetPane) targetPane.classList.add('active');
+    });
+  });
+
+  // 11. Project Save / Load & Example Projects
+  const btnSave = document.getElementById('btn-save-project');
+  const btnLoad = document.getElementById('btn-load-project');
+  const fileInput = document.getElementById('project-file-input');
+  const examplesSelect = document.getElementById('examples-select');
+
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      const xml = Blockly.Xml.workspaceToDom(workspace);
+      const xmlText = Blockly.Xml.domToPrettyText(xml);
+      const projectData = {
+        name: 'TanoScratch_Project',
+        version: '1.0',
+        date: new Date().toISOString(),
+        xml: xmlText
+      };
+      const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `tanoscratch_project_${Date.now()}.tanoscratch`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }
+
+  if (btnLoad && fileInput) {
+    btnLoad.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.xml) {
+            workspace.clear();
+            const dom = Blockly.utils.xml.textToDom(data.xml);
+            Blockly.Xml.domToWorkspace(dom, workspace);
+          }
+        } catch (err) {
+          alert('Error al abrir el archivo de proyecto: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  // Load Example Projects
+  const EXAMPLES = {
+    'starter': `<xml xmlns="https://developers.google.com/blockly/xml">
+      <block type="scratch_when_flag" x="50" y="50">
+        <statement name="STACK">
+          <block type="scratch_say_for_secs">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">¡Hola! Soy Tano, bienvenido a TanoScratch</field></shadow></value>
+            <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+            <next>
+              <block type="scratch_repeat">
+                <value name="TIMES"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+                <statement name="DO">
+                  <block type="scratch_move">
+                    <value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+                    <next>
+                      <block type="scratch_wait">
+                        <value name="SECS"><shadow type="math_number"><field name="NUM">0.1</field></shadow></value>
+                      </block>
+                    </next>
+                  </block>
+                </statement>
+                <next>
+                  <block type="scratch_play_sound">
+                    <value name="FREQ"><shadow type="math_number"><field name="NUM">523</field></shadow></value>
+                    <value name="DURATION"><shadow type="math_number"><field name="NUM">0.3</field></shadow></value>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </xml>`,
+
+    'imu_tilt': `<xml xmlns="https://developers.google.com/blockly/xml">
+      <block type="scratch_when_flag" x="50" y="50">
+        <statement name="STACK">
+          <block type="scratch_say_for_secs">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">¡Inclina el Nano 33 BLE para mover a Tano!</field></shadow></value>
+            <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+            <next>
+              <block type="scratch_forever">
+                <statement name="DO">
+                  <block type="scratch_goto">
+                    <value name="X">
+                      <block type="math_arithmetic">
+                        <field name="OP">MULTIPLY</field>
+                        <value name="A"><block type="nano33_get_accel"><field name="AXIS">x</field></block></value>
+                        <value name="B"><shadow type="math_number"><field name="NUM">200</field></shadow></value>
+                      </block>
+                    </value>
+                    <value name="Y">
+                      <block type="math_arithmetic">
+                        <field name="OP">MULTIPLY</field>
+                        <value name="A"><block type="nano33_get_accel"><field name="AXIS">y</field></block></value>
+                        <value name="B"><shadow type="math_number"><field name="NUM">200</field></shadow></value>
+                      </block>
+                    </value>
+                  </block>
+                </statement>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </xml>`,
+
+    'gesture_sound': `<xml xmlns="https://developers.google.com/blockly/xml">
+      <block type="scratch_when_flag" x="50" y="50">
+        <statement name="STACK">
+          <block type="scratch_say">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">Haz gestos sobre el sensor APDS9960</field></shadow></value>
+          </block>
+        </statement>
+      </block>
+      <block type="nano33_when_gesture" x="50" y="160">
+        <field name="GESTURE">UP</field>
+        <statement name="DO">
+          <block type="scratch_say_for_secs">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">¡Gesto ARRIBA detectado!</field></shadow></value>
+            <value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <next>
+              <block type="scratch_play_sound">
+                <value name="FREQ"><shadow type="math_number"><field name="NUM">880</field></shadow></value>
+                <value name="DURATION"><shadow type="math_number"><field name="NUM">0.2</field></shadow></value>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+      <block type="nano33_when_gesture" x="50" y="320">
+        <field name="GESTURE">DOWN</field>
+        <statement name="DO">
+          <block type="scratch_say_for_secs">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">¡Gesto ABAJO detectado!</field></shadow></value>
+            <value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+            <next>
+              <block type="scratch_play_sound">
+                <value name="FREQ"><shadow type="math_number"><field name="NUM">330</field></shadow></value>
+                <value name="DURATION"><shadow type="math_number"><field name="NUM">0.2</field></shadow></value>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </xml>`,
+
+    'color_lamp': `<xml xmlns="https://developers.google.com/blockly/xml">
+      <block type="scratch_when_flag" x="50" y="50">
+        <statement name="STACK">
+          <block type="scratch_say_for_secs">
+            <value name="TEXT"><shadow type="text"><field name="TEXT">Copia el color detectado al LED RGB</field></shadow></value>
+            <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+            <next>
+              <block type="scratch_forever">
+                <statement name="DO">
+                  <block type="nano33_set_rgb">
+                    <value name="R"><block type="nano33_get_color"><field name="CHANNEL">r</field></block></value>
+                    <value name="G"><block type="nano33_get_color"><field name="CHANNEL">g</field></block></value>
+                    <value name="B"><block type="nano33_get_color"><field name="CHANNEL">b</field></block></value>
+                    <next>
+                      <block type="scratch_wait">
+                        <value name="SECS"><shadow type="math_number"><field name="NUM">0.1</field></shadow></value>
+                      </block>
+                    </next>
+                  </block>
+                </statement>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </xml>`
+  };
+
+  if (examplesSelect) {
+    examplesSelect.addEventListener('change', (e) => {
+      const selected = e.target.value;
+      if (selected && EXAMPLES[selected]) {
+        workspace.clear();
+        const dom = Blockly.utils.xml.textToDom(EXAMPLES[selected]);
+        Blockly.Xml.domToWorkspace(dom, workspace);
+      }
+    });
+  }
+
+  // Load default welcome blocks
+  if (EXAMPLES['starter']) {
+    const dom = Blockly.utils.xml.textToDom(EXAMPLES['starter']);
+    Blockly.Xml.domToWorkspace(dom, workspace);
+  }
+});

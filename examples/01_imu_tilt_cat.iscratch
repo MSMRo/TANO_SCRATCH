@@ -1,0 +1,6 @@
+{
+  "name": "01_Control_Gato_IMU",
+  "version": "1.0",
+  "description": "Controla la posición del Gato Scratch en tiempo real usando el acelerómetro triaxial del Arduino Nano 33 BLE Sense",
+  "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"scratch_when_flag\" x=\"50\" y=\"50\"><statement name=\"STACK\"><block type=\"scratch_say_for_secs\"><value name=\"TEXT\"><shadow type=\"text\"><field name=\"TEXT\">¡Inclina el Nano 33 BLE para moverme!</field></shadow></value><value name=\"SECS\"><shadow type=\"math_number\"><field name=\"NUM\">2</field></shadow></value><next><block type=\"scratch_forever\"><statement name=\"DO\"><block type=\"scratch_goto\"><value name=\"X\"><block type=\"math_arithmetic\"><field name=\"OP\">MULTIPLY</field><value name=\"A\"><block type=\"nano33_get_accel\"><field name=\"AXIS\">x</field></block></value><value name=\"B\"><shadow type=\"math_number\"><field name=\"NUM\">200</field></shadow></value></block></value><value name=\"Y\"><block type=\"math_arithmetic\"><field name=\"OP\">MULTIPLY</field><value name=\"A\"><block type=\"nano33_get_accel\"><field name=\"AXIS\">y</field></block></value><value name=\"B\"><shadow type=\"math_number\"><field name=\"NUM\">200</field></shadow></value></block></value></block></statement></block></next></block></statement></block></xml>"
+}

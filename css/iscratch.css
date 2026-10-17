@@ -1,0 +1,374 @@
+/**
+ * =============================================================================
+ * iScratch - Modern Scratch 3.0 UI Stylesheet
+ * =============================================================================
+ */
+
+:root {
+  --primary-teal: #00878F;
+  --primary-teal-dark: #006468;
+  --primary-teal-light: #E0F2F1;
+  --scratch-orange: #FFAB19;
+  --scratch-blue: #4C97FF;
+  --scratch-purple: #9966FF;
+  --scratch-green: #59C059;
+  --google-blue: #4285F4;
+  --bg-app: #F0F4F8;
+  --bg-header: #00878F;
+  --text-dark: #2C3E50;
+  --border-color: #E2E8F0;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 4px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-dark);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header Navbar */
+.iscratch-header {
+  height: 54px;
+  background: linear-gradient(135deg, #00878F 0%, #006E74 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-shadow: 0 2px 8px rgba(0, 100, 104, 0.25);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-logo-img {
+  height: 38px;
+  width: auto;
+}
+
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.header-btn.accent-btn {
+  background: #FFAB19;
+  color: #2C1B00;
+  border-color: #FFA000;
+  font-weight: 700;
+}
+
+.header-btn.accent-btn:hover {
+  background: #FFB733;
+}
+
+.header-center-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Green Flag & Stop Buttons */
+.flag-btn, .stop-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.flag-btn {
+  background: #45B054;
+  color: #FFFFFF;
+}
+
+.flag-btn:hover {
+  background: #50C560;
+  transform: scale(1.08);
+}
+
+.flag-btn.running {
+  animation: pulse-green 1.5s infinite;
+}
+
+@keyframes pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(69, 176, 84, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(69, 176, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(69, 176, 84, 0); }
+}
+
+.stop-btn {
+  background: #E53935;
+  color: #FFFFFF;
+}
+
+.stop-btn:hover {
+  background: #F44336;
+  transform: scale(1.08);
+}
+
+/* Connection Badges */
+.serial-pill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.serial-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9E9E9E;
+}
+
+.serial-status-dot.connected {
+  background: #00E676;
+  box-shadow: 0 0 6px #00E676;
+}
+
+.serial-status-dot.connecting {
+  background: #FFD600;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Main App Workspace (3-column layout) */
+.iscratch-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left: Blockly Workspace Area */
+.blockly-container {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  background: #FFFFFF;
+}
+
+#blocklyDiv {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+/* Right Panel: Stage + Sprite Controls + Telemetry Drawer */
+.iscratch-stage-panel {
+  width: 480px;
+  background: #F8FAFC;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Stage Canvas Wrapper */
+.stage-card {
+  padding: 12px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stage-wrapper {
+  width: 456px;
+  height: 342px;
+  margin: 0 auto;
+  position: relative;
+  background: #FFFFFF;
+  border: 2px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+#stageCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Sprite Properties Toolbar */
+.sprite-props-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.sprite-prop-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sprite-prop-group label {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.sprite-prop-group input {
+  width: 50px;
+  padding: 3px 6px;
+  border: 1px solid #CBD5E1;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Tab Navigation for Lower Right */
+.panel-tabs {
+  display: flex;
+  background: #EEF2F6;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panel-tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.panel-tab-btn:hover {
+  color: var(--primary-teal);
+  background: rgba(0, 135, 143, 0.05);
+}
+
+.panel-tab-btn.active {
+  color: var(--primary-teal);
+  border-bottom-color: var(--primary-teal);
+  background: #FFFFFF;
+}
+
+.tab-pane {
+  display: none;
+  padding: 14px;
+  flex: 1;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* Modal Windows */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 560px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 14px 18px;
+  background: var(--primary-teal);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-body {
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 12px 18px;
+  background: #F8FAFC;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

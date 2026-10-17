@@ -1,0 +1,6 @@
+{
+  "name": "03_Lampara_Magica_Color",
+  "version": "1.0",
+  "description": "El sensor APDS9960 lee los componentes RGB del objeto frente a él y actualiza el LED RGB de la tarjeta Nano 33 BLE Sense en tiempo real",
+  "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"scratch_when_flag\" x=\"50\" y=\"50\"><statement name=\"STACK\"><block type=\"scratch_say_for_secs\"><value name=\"TEXT\"><shadow type=\"text\"><field name=\"TEXT\">Copia el color detectado al LED RGB</field></shadow></value><value name=\"SECS\"><shadow type=\"math_number\"><field name=\"NUM\">2</field></shadow></value><next><block type=\"scratch_forever\"><statement name=\"DO\"><block type=\"nano33_set_rgb\"><value name=\"R\"><block type=\"nano33_get_color\"><field name=\"CHANNEL\">r</field></block></value><value name=\"G\"><block type=\"nano33_get_color\"><field name=\"CHANNEL\">g</field></block></value><value name=\"B\"><block type=\"nano33_get_color\"><field name=\"CHANNEL\">b</field></block></value><next><block type=\"scratch_wait\"><value name=\"SECS\"><shadow type=\"math_number\"><field name=\"NUM\">0.1</field></shadow></value></block></next></block></statement></block></next></block></statement></block></xml>"
+}

@@ -79,6 +79,24 @@ document.addEventListener('DOMContentLoaded', () => {
         </block>
       </category>
 
+      <!-- ⏱️ TEMPORIZADORES -->
+      <category name="Temporizadores" colour="#00B4D8">
+        <block type="timer_every">
+          <value name="INTERVAL"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+        </block>
+        <block type="timer_after">
+          <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+        </block>
+        <block type="timer_when_greater">
+          <value name="THRESHOLD"><shadow type="math_number"><field name="NUM">5</field></shadow></value>
+        </block>
+        <block type="timer_reset"></block>
+        <block type="timer_get"></block>
+        <block type="timer_wait">
+          <value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value>
+        </block>
+      </category>
+
       <!-- 🟠 CONTROL -->
       <category name="Control" colour="#FFAB19">
         <block type="scratch_wait">
@@ -95,6 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- 🔷 SENSORES Y CONDICIONES -->
       <category name="Sensores" colour="#5CB1D6">
         <block type="nano33_get_button"></block>
+        <block type="timer_get"></block>
+        <block type="timer_reset"></block>
         <block type="logic_boolean"></block>
         <block type="logic_compare"></block>
         <block type="logic_operation"></block>
@@ -232,9 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.iScratchRuntime) {
         window.iScratchRuntime.unlockAudio();
       }
-      const code = Blockly.JavaScript.workspaceToCode(workspace);
-      console.log('--- iScratch: Ejecutando Programa ---\n', code);
       flagBtn.classList.add('running');
+
+      // Use standard workspaceToCode: properly initializes nameDB_ and all variable definitions,
+      // and registers each stack (green_flag, button, timer, gestures) into concurrent event handlers!
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      console.log('--- TanoScratch: Ejecutando Programa ---\n', code);
       window.iScratchRuntime.start(code);
     } catch (err) {
       console.error('Error al generar o ejecutar código:', err);

@@ -36,6 +36,10 @@ class StageRuntime {
     this.eventListeners = {};
     this.animFrameId = null;
 
+    // Stopwatch & Timers
+    this.timerStartTime = Date.now();
+    this.activeTimers = [];
+
     // Interactive Dragging
     this.isDragging = false;
     this.dragOffset = { x: 0, y: 0 };
@@ -243,30 +247,131 @@ class StageRuntime {
     });
   }
 
+  // --- Timer & Stopwatch Methods ---
+  resetTimer() {
+    this.timerStartTime = Date.now();
+  }
+
+  getTimer() {
+    const elapsed = (Date.now() - (this.timerStartTime || Date.now())) / 1000;
+    return Math.round(elapsed * 10) / 10;
+  }
+
+  registerTimerInterval(intervalSec, handler) {
+    const ms = Math.max(50, Math.round((Number(intervalSec) || 1) * 1000));
+    const currentExecId = this.executionId;
+    let isExecuting = false;
+
+    const timerId = setInterval(async () => {
+      if (!this.isRunning || this.executionId !== currentExecId) {
+        clearInterval(timerId);
+        return;
+      }
+      if (isExecuting) return; // Prevent overlapping execution
+      isExecuting = true;
+      try {
+        const res = handler();
+        if (res && typeof res.then === 'function') {
+          await res;
+        }
+      } catch (err) {
+        if (err && (err.message === 'ExecutionAborted' || err.name === 'ExecutionAborted')) return;
+        console.error('Error en temporizador de intervalo:', err);
+      } finally {
+        isExecuting = false;
+      }
+    }, ms);
+
+    this.activeTimers.push(timerId);
+    return timerId;
+  }
+
+  registerTimerTimeout(delaySec, handler) {
+    const ms = Math.max(10, Math.round((Number(delaySec) || 1) * 1000));
+    const currentExecId = this.executionId;
+
+    const timeoutId = setTimeout(async () => {
+      if (!this.isRunning || this.executionId !== currentExecId) return;
+      try {
+        const res = handler();
+        if (res && typeof res.then === 'function') {
+          await res;
+        }
+      } catch (err) {
+        if (err && (err.message === 'ExecutionAborted' || err.name === 'ExecutionAborted')) return;
+        console.error('Error en temporizador diferido:', err);
+      }
+    }, ms);
+
+    this.activeTimers.push(timeoutId);
+    return timeoutId;
+  }
+
+  registerTimerThreshold(thresholdSec, handler) {
+    const th = Number(thresholdSec) || 0;
+    const currentExecId = this.executionId;
+    let triggered = false;
+
+    const intervalId = setInterval(async () => {
+      if (!this.isRunning || this.executionId !== currentExecId) {
+        clearInterval(intervalId);
+        return;
+      }
+      if (!triggered && this.getTimer() >= th) {
+        triggered = true;
+        try {
+          const res = handler();
+          if (res && typeof res.then === 'function') {
+            await res;
+          }
+        } catch (err) {
+          if (err && (err.message === 'ExecutionAborted' || err.name === 'ExecutionAborted')) return;
+          console.error('Error en evento de cronómetro:', err);
+        }
+      }
+    }, 100);
+
+    this.activeTimers.push(intervalId);
+    return intervalId;
+  }
+
   start(compiledJs) {
+    if (Array.isArray(compiledJs)) {
+      this.startMulti(compiledJs);
+    } else {
+      this.startMulti([compiledJs]);
+    }
+  }
+
+  startMulti(scripts) {
     this.stop();
     this.isRunning = true;
     this.executionId++;
+    this.resetTimer();
     const currentExecId = this.executionId;
     this.eventListeners = {};
     this.unlockAudio();
 
-    // Execute compiled script asynchronously
-    const thread = (async () => {
-      try {
-        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-        const fn = new AsyncFunction('runtime', compiledJs);
-        await fn(this);
-      } catch (err) {
-        if (err && (err.message === 'ExecutionAborted' || err.name === 'ExecutionAborted')) {
-          // Normal thread termination upon stop or restart
-          return;
-        }
-        console.error('Error durante la ejecución del programa:', err);
-      }
-    })();
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 
-    this.activeThreads.push(thread);
+    // Launch each top block stack in its own concurrent async task
+    for (const code of scripts) {
+      if (!code || typeof code !== 'string' || !code.trim()) continue;
+      const thread = (async () => {
+        try {
+          const fn = new AsyncFunction('runtime', code);
+          await fn(this);
+        } catch (err) {
+          if (err && (err.message === 'ExecutionAborted' || err.name === 'ExecutionAborted')) {
+            return;
+          }
+          console.error('Error durante la ejecución del hilo:', err);
+        }
+      })();
+      this.activeThreads.push(thread);
+    }
+
+    this.triggerEvent('green_flag');
   }
 
   stop() {
@@ -274,6 +379,13 @@ class StageRuntime {
     this.isRunning = false;
     this.activeThreads = [];
     this.eventListeners = {};
+    if (this.activeTimers && this.activeTimers.length > 0) {
+      for (const id of this.activeTimers) {
+        clearInterval(id);
+        clearTimeout(id);
+      }
+      this.activeTimers = [];
+    }
     if (this.sprite.sayTimeout) {
       clearTimeout(this.sprite.sayTimeout);
       this.sprite.sayTimeout = null;

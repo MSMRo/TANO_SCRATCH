@@ -40,7 +40,10 @@
 
   registerGen('scratch_when_flag', function (block) {
     const stack = Blockly.JavaScript.statementToCode(block, 'STACK');
-    return `// Al hacer clic en bandera verde\n${stack}\n`;
+    return `
+      runtime.registerEventListener('green_flag', async () => {
+        ${stack}
+      });\n`;
   });
 
   // --- MOTION ---

@@ -63,18 +63,26 @@ Este firmware convierte la placa **Arduino Nano 33 BLE Sense** en un dispositivo
 
 ## Cómo Grabar el Firmware
 
-### Opción 1: Con Arduino CLI
-```bash
-# Compilar
-arduino-cli compile --fqbn arduino:mbed_nano:nano33ble firmware/iScratch_Nano33BLE_Sense
+### Opción 1: Un solo clic con el archivo `.bat` (Recomendado)
+1. Conecta tu **Arduino Nano 33 BLE Sense** a un puerto USB de la computadora.
+2. Si tienes abierto el Monitor Serial (en Arduino IDE o en TanoScratch), asegúrate de cerrarlo o desconectarlo temporalmente para no bloquear el puerto COM.
+3. Haz doble clic en el archivo [`cargar_firmware.bat`](file:///e:/PROJECTS/IA_SCRATCH/firmware/cargar_firmware.bat) o [`cargar_firmware_nano33ble.bat`](file:///e:/PROJECTS/IA_SCRATCH/firmware/cargar_firmware_nano33ble.bat).
+4. El script detectará automáticamente el puerto COM del Arduino y grabará el binario precompilado inmediatamente.
 
-# Subir a la placa (por ejemplo en COM4)
-arduino-cli upload -p COM4 --fqbn arduino:mbed_nano:nano33ble firmware/iScratch_Nano33BLE_Sense
+> **Nota:** Si la placa no responde al reinicio automático, pulsa dos veces rápidamente el botón físico **RESET** del Arduino Nano (el LED naranja parpadeará suavemente indicando modo *Bootloader*) y vuelve a ejecutar el `.bat`.
+
+### Opción 2: Con Arduino CLI
+```bash
+# Grabar directamente el binario compilado
+arduino-cli upload -b arduino:mbed_nano:nano33ble -p COM4 --input-file firmware/iScratch_Nano33BLE_Sense.ino.bin
+
+# O recompilar y subir desde el código fuente
+arduino-cli compile --fqbn arduino:mbed_nano:nano33ble -u -p COM4 firmware/iScratch_Nano33BLE_Sense
 ```
 
-### Opción 2: Con Arduino IDE 2.x
+### Opción 3: Con Arduino IDE 2.x
 1. Abre el archivo `iScratch_Nano33BLE_Sense.ino` en el Arduino IDE.
 2. Selecciona la placa **Arduino Nano 33 BLE** en **Herramientas > Placa**.
 3. Selecciona el puerto COM correspondiente (ej. `COM4`).
 4. Haz clic en **Subir** (ícono de flecha).
-5. Abre iScratch en tu navegador (Chrome o Edge) y haz clic en **Conectar Arduino** a 115200 baudios.
+5. Abre TanoScratch en tu navegador (Chrome o Edge) y haz clic en **Conectar Arduino** a 115200 baudios.

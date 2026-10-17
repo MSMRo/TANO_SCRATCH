@@ -38,6 +38,7 @@
         <select class="header-btn" id="examples-select" style="padding: 5px 8px; background: rgba(0,0,0,0.2);">
           <option value="">📁 Proyectos de Ejemplo...</option>
           <option value="starter">🏃 Mover a Tano (Inicio)</option>
+          <option value="button_grow">🔘 Agrandar a Tano con Botón</option>
           <option value="imu_tilt">🎮 Control de Tano con IMU</option>
           <option value="gesture_sound">👋 Gestos y Tonos Sonoros</option>
           <option value="color_lamp">🌈 Lámpara de Color RGB</option>
@@ -90,9 +91,9 @@
 
       <!-- Sprite Properties Toolbar -->
       <div class="sprite-props-bar">
-        <div class="sprite-prop-group">
+        <div class="sprite-prop-group" style="margin-right: 6px;">
           <label>Objeto:</label>
-          <span style="font-weight: 700; color: #00878F;">Tano</span>
+          <span style="font-weight: 700; color: #00878F; margin-right: 6px;">Tano</span>
         </div>
         <div class="sprite-prop-group">
           <label>x:</label>
@@ -108,7 +109,7 @@
         </div>
         <div class="sprite-prop-group">
           <label>Tam:</label>
-          <input type="text" id="sprite-size" value="100" readonly>
+          <input type="text" id="sprite-size" value="100" title="Tamaño en % (editable)">
         </div>
         <button id="btn-reset-sprite" class="header-btn" title="Restablecer posición de Tano al centro (0, 0)" style="padding: 2px 8px; font-size: 11px; margin-left: auto; background: #00878F; color: #FFF; border-radius: 4px;">🎯 Centrar</button>
       </div>
@@ -225,12 +226,22 @@
             </div>
           </div>
 
-          <!-- Actuator Controls: LED D13 & RGB -->
-          <div class="actuator-controls">
-            <button class="btn-toggle-led" id="btn-quick-led">LED D13: OFF</button>
+          <!-- TinyML Shield Pushbutton -->
+          <div class="sensor-card">
+            <div class="sensor-header">
+              <span>Botón TinyML</span>
+              <span>🔘</span>
+            </div>
+            <div class="sensor-value-large" style="font-size: 13px;">
+              <span id="val-btn" style="color: #64748B;">NO PRESIONADO</span>
+            </div>
+          </div>
+
+          <!-- Actuator Controls: LED RGB (Onboard) -->
+          <div class="actuator-controls" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <button class="btn-toggle-led" id="btn-toggle-rgb" style="flex: 1; text-align: center;">LED RGB: OFF</button>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11px; font-weight: 700; color: #475569;">LED RGB:</span>
-              <input type="color" id="rgb-color-picker" value="#000000" style="cursor: pointer; border: none; width: 28px; height: 28px; border-radius: 4px;">
+              <input type="color" id="rgb-color-picker" value="#000000" disabled title="Enciende primero el LED RGB para seleccionar un color" style="cursor: not-allowed; opacity: 0.45; border: 1px solid #CBD5E1; width: 32px; height: 30px; border-radius: 4px; padding: 0;">
             </div>
           </div>
 

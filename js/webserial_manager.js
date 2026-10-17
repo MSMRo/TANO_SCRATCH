@@ -36,7 +36,8 @@ class WebSerialManager {
       light: 0,     // Ambient Light
       prox: 255,    // Proximity (0-255, 255 = far)
       gesture: 'NONE',
-      sound: 0      // Microphone RMS level (0-100)
+      sound: 0,     // Microphone RMS level (0-100)
+      btn: 0        // TinyML Shield Pushbutton (0 = released, 1 = pressed)
     };
 
     this.lastGesture = 'NONE';

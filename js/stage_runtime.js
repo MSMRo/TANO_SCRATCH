@@ -83,7 +83,6 @@ class StageRuntime {
   }
 
   playTone(freq = 440, duration = 0.2) {
-    if (!this.isRunning) return;
     try {
       const ctx = this._getAudioContext();
       if (ctx.state === 'suspended') {
@@ -140,11 +139,25 @@ class StageRuntime {
     let lastHandledGesture = 'NONE';
     let lastGestureTimestamp = 0;
 
-    // Watch for incoming hardware gestures from Arduino
+    // Watch for incoming hardware events from Arduino
     if (window.iScratchSerial) {
       window.iScratchSerial.onTelemetry((data) => {
+        // Watch for TinyML Shield button press & release events
+        if (data.btn !== undefined && data.btn !== null) {
+          if (data.btn === 1 && this._lastButtonState !== 1) {
+            this._lastButtonState = 1;
+            this.unlockAudio();
+            this.triggerEvent('button_press');
+          } else if (data.btn === 0 && this._lastButtonState === 1) {
+            this._lastButtonState = 0;
+            this.unlockAudio();
+            this.triggerEvent('button_release');
+          }
+        }
+
         if (!this.isRunning) return;
 
+        // Gestures
         const g = data.gesture;
         const now = Date.now();
         if (g && g !== 'NONE') {
@@ -340,6 +353,24 @@ class StageRuntime {
     if (!this.isRunning) return;
     this.sprite.direction = Number(degrees) || 90;
     this.updateSpriteInputsUI();
+  }
+
+  changeSize(delta) {
+    if (!this.isRunning) return;
+    const d = Number(delta) || 0;
+    this.sprite.size = Math.max(5, Math.min(500, Math.round(this.sprite.size + d)));
+    this.updateSpriteInputsUI();
+  }
+
+  setSize(size) {
+    if (!this.isRunning) return;
+    const s = Number(size) || 100;
+    this.sprite.size = Math.max(5, Math.min(500, Math.round(s)));
+    this.updateSpriteInputsUI();
+  }
+
+  getSize() {
+    return this.sprite.size;
   }
 
   bounceOnEdge() {

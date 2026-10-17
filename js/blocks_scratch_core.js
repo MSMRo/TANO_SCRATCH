@@ -182,6 +182,57 @@
     return `runtime.say(${text});\n`;
   });
 
+  Blockly.Blocks['scratch_change_size'] = {
+    init: function () {
+      this.appendValueInput('CHANGE')
+        .setCheck('Number')
+        .appendField('cambiar tamaño por');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(COLOR_LOOKS);
+      this.setTooltip('Aumenta o disminuye el tamaño de Tano (valores positivos agrandan, negativos reducen).');
+    }
+  };
+
+  registerGen('scratch_change_size', function (block) {
+    const change = Blockly.JavaScript.valueToCode(block, 'CHANGE', Order.ATOMIC) || '10';
+    return `runtime.changeSize(${change});\n`;
+  });
+
+  Blockly.Blocks['scratch_set_size'] = {
+    init: function () {
+      this.appendValueInput('SIZE')
+        .setCheck('Number')
+        .appendField('fijar tamaño al');
+      this.appendDummyInput()
+        .appendField('%');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(COLOR_LOOKS);
+      this.setTooltip('Establece el tamaño de Tano en porcentaje (100% es el tamaño original).');
+    }
+  };
+
+  registerGen('scratch_set_size', function (block) {
+    const size = Blockly.JavaScript.valueToCode(block, 'SIZE', Order.ATOMIC) || '100';
+    return `runtime.setSize(${size});\n`;
+  });
+
+  Blockly.Blocks['scratch_get_size'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('tamaño');
+      this.setOutput(true, 'Number');
+      this.setColour(COLOR_LOOKS);
+      this.setTooltip('Retorna el tamaño actual de Tano en porcentaje.');
+    }
+  };
+
+  registerGen('scratch_get_size', function () {
+    return ['runtime.getSize()', Order.ATOMIC];
+  });
+
   // --- SOUND ---
   Blockly.Blocks['scratch_play_sound'] = {
     init: function () {

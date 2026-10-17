@@ -251,7 +251,7 @@ body {
 .sprite-props-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   background: #FFFFFF;
   border-bottom: 1px solid var(--border-color);

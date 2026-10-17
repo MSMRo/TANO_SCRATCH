@@ -240,28 +240,77 @@
     return ['(window.iScratchSerial.telemetry.sound || 0)', Order.ATOMIC];
   });
 
-  // 14. Actuador: LED Incorporado D13
+  // 14. Deprecated D13 LED Block (Safe fallback for old projects)
   Blockly.Blocks['nano33_set_led'] = {
     init: function () {
       this.appendDummyInput()
-        .appendField('💡 fijar LED incorporado (D13) a')
+        .appendField('⚠️ [Desactivado] LED D13');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour('#94A3B8');
+      this.setTooltip('El pin D13 está ahora dedicado exclusivamente al botón de la shield TinyML.');
+    }
+  };
+
+  registerGen('nano33_set_led', function () {
+    return '// Pin D13 asignado exclusivamente a boton TinyML\n';
+  });
+
+  // 15a. Actuador: Encender / Apagar LED RGB
+  Blockly.Blocks['nano33_set_rgb_power'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('💡 fijar LED RGB a')
         .appendField(new Blockly.FieldDropdown([
-          ['encendido', '1'],
-          ['apagado', '0']
+          ['encendido (blanco)', 'on'],
+          ['apagado', 'off']
         ]), 'STATE');
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setColour(ARDUINO_COLOR);
-      this.setTooltip('Enciende o apaga el LED naranja incorporado en el pin 13 del Arduino.');
+      this.setTooltip('Enciende (blanco por defecto) o apaga completamente el LED RGB de la placa.');
     }
   };
 
-  registerGen('nano33_set_led', function (block) {
+  registerGen('nano33_set_rgb_power', function (block) {
     const state = block.getFieldValue('STATE');
-    return `await window.iScratchSerial.setBuiltinLed(${state});\n`;
+    if (state === 'on') {
+      return 'await window.iScratchSerial.setRgbLed(255, 255, 255);\n';
+    } else {
+      return 'await window.iScratchSerial.setRgbLed(0, 0, 0);\n';
+    }
   });
 
-  // 15. Actuador: LED RGB de la placa
+  // 15b. Actuador: Fijar color predefinido de LED RGB
+  Blockly.Blocks['nano33_set_rgb_color_palette'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('🌈 fijar color LED RGB a')
+        .appendField(new Blockly.FieldDropdown([
+          ['🔴 Rojo', '255,0,0'],
+          ['🟢 Verde', '0,255,0'],
+          ['🔵 Azul', '0,0,255'],
+          ['🟡 Amarillo', '255,255,0'],
+          ['🔷 Cian', '0,255,255'],
+          ['🟣 Magenta', '255,0,255'],
+          ['⚪ Blanco', '255,255,255'],
+          ['🟠 Naranja', '255,128,0'],
+          ['⚫ Apagado', '0,0,0']
+        ]), 'COLOR');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(ARDUINO_COLOR);
+      this.setTooltip('Establece el color del LED RGB integrado a un color predefinido.');
+    }
+  };
+
+  registerGen('nano33_set_rgb_color_palette', function (block) {
+    const colorStr = block.getFieldValue('COLOR') || '255,0,0';
+    const [r, g, b] = colorStr.split(',');
+    return `await window.iScratchSerial.setRgbLed(${r}, ${g}, ${b});\n`;
+  });
+
+  // 15c. Actuador: LED RGB con canales R, G, B personalizados (0-255)
   Blockly.Blocks['nano33_set_rgb'] = {
     init: function () {
       this.appendValueInput('R')
@@ -277,7 +326,7 @@
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setColour(ARDUINO_COLOR);
-      this.setTooltip('Controla el color del LED RGB de la tarjeta Nano 33 BLE Sense (valores de 0 a 255).');
+      this.setTooltip('Controla la intensidad de cada canal del LED RGB (0 a 255). 0,0,0 apaga el LED.');
     }
   };
 
@@ -329,6 +378,61 @@
     const branch = Blockly.JavaScript.statementToCode(block, 'DO');
     return `
       window.iScratchRuntime.registerEventListener('gesture_${gesture}', async () => {
+        ${branch}
+      });\n`;
+  });
+
+  // 18a. ¿Botón TinyML presionado? (Booleano)
+  Blockly.Blocks['nano33_get_button'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('🔘 ¿botón TinyML presionado?');
+      this.setOutput(true, 'Boolean');
+      this.setColour(ARDUINO_COLOR);
+      this.setTooltip('Retorna verdadero (true) mientras el botón de la shield TinyML esté presionado.');
+    }
+  };
+
+  registerGen('nano33_get_button', function () {
+    return ['(window.iScratchSerial.telemetry.btn === 1)', Order.ATOMIC];
+  });
+
+  // 18b. Estado numérico del botón TinyML (1 o 0)
+  Blockly.Blocks['nano33_get_button_state'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('🔘 estado botón TinyML (1 presionado, 0 suelto)');
+      this.setOutput(true, 'Number');
+      this.setColour(ARDUINO_COLOR);
+      this.setTooltip('Retorna 1 si el botón de la shield TinyML está presionado, o 0 si está liberado.');
+    }
+  };
+
+  registerGen('nano33_get_button_state', function () {
+    return ['(window.iScratchSerial.telemetry.btn || 0)', Order.ATOMIC];
+  });
+
+  // 19. Evento: Al presionar / soltar botón de la shield TinyML
+  Blockly.Blocks['nano33_when_button'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('🔘 al')
+        .appendField(new Blockly.FieldDropdown([
+          ['presionar botón TinyML', 'press'],
+          ['soltar botón TinyML', 'release']
+        ]), 'ACTION');
+      this.appendStatementInput('DO')
+        .appendField('hacer');
+      this.setColour(ARDUINO_COLOR);
+      this.setTooltip('Ejecuta las instrucciones cuando se presiona o suelta el botón de la shield TinyML.');
+    }
+  };
+
+  registerGen('nano33_when_button', function (block) {
+    const action = block.getFieldValue('ACTION') || 'press';
+    const branch = Blockly.JavaScript.statementToCode(block, 'DO');
+    return `
+      window.iScratchRuntime.registerEventListener('button_${action}', async () => {
         ${branch}
       });\n`;
   });

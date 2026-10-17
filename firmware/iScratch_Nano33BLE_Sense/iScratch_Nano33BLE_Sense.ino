@@ -24,6 +24,7 @@
 #include <Arduino_LPS22HB.h>
 #include <Arduino_APDS9960.h>
 #include <PDM.h>
+#include "nrf_gpio.h"
 
 // --- Configuration & Timing ---
 unsigned long telemetryIntervalMs = 50; // 20 Hz
@@ -85,12 +86,6 @@ void parseSerialCommands() {
       continue;
     }
 
-    // Handle Built-in LED: {"led": 1} or {"led": 0}
-    if (doc.containsKey("led")) {
-      int state = doc["led"];
-      digitalWrite(LED_BUILTIN, state ? HIGH : LOW);
-    }
-
     // Handle RGB LED: {"rgb": [255, 0, 0]}
     if (doc.containsKey("rgb")) {
       JsonArray rgb = doc["rgb"];
@@ -115,21 +110,50 @@ void parseSerialCommands() {
       StaticJsonDocument<128> reply;
       reply["pong"] = 1;
       reply["board"] = isRev2Board ? "Nano33BLE_Sense_Rev2" : "Nano33BLE_Sense_Rev1";
-      reply["fw"] = "iScratch_2.0";
+      reply["fw"] = "TanoScratch_2.0";
       serializeJson(reply, Serial);
       Serial.println();
     }
   }
 }
 
+// --- TinyML Shield Pushbutton Driver ---
+// On Arduino Nano 33 BLE / Sense, Pin 13 is shared with the built-in amber LED.
+// A standard INPUT_PULLUP gets pulled down by the LED circuit to ~0.5V (logic LOW),
+// making digitalRead(13) read 0 (pressed) perpetually.
+// To fix this, we use the Harvard TinyML configuration:
+// configure Pin 13 with output buffer driving HIGH + input buffer connected + pull-up.
+// When released, the pin reads 1 (HIGH). When pressed, the button pulls it to GND (0, LOW).
+void initTinyMLButton() {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+  nrf_gpio_cfg(
+    digitalPinToPinName(13),
+    NRF_GPIO_PIN_DIR_OUTPUT,
+    NRF_GPIO_PIN_INPUT_CONNECT,
+    NRF_GPIO_PIN_PULLUP,
+    NRF_GPIO_PIN_S0S1,
+    NRF_GPIO_PIN_NOSENSE
+  );
+  pinMode(12, INPUT_PULLUP);
+}
+
+bool readTinyMLButton() {
+  // Read D13 using direct nRF GPIO input register:
+  // 0 = pressed to GND, 1 = released
+  uint32_t pinName13 = digitalPinToPinName(13);
+  bool p13Pressed = (nrf_gpio_pin_read(pinName13) == 0);
+
+  // Also support D12 as alternate button pin
+  bool p12Pressed = (digitalRead(12) == LOW);
+
+  return p13Pressed || p12Pressed;
+}
+
 void setup() {
   // Initialize Serial
   Serial.begin(115200);
   delay(1000);
-
-  // Initialize LEDs
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
 
   #if defined(LEDR) && defined(LEDG) && defined(LEDB)
     pinMode(LEDR, OUTPUT);
@@ -161,15 +185,16 @@ void setup() {
     pdmAvailable = true;
   }
 
-  // Blink LED 3 times quickly to indicate boot completion
+  // Blink faint green RGB LED 3 times quickly to indicate boot completion
   for (int i = 0; i < 3; i++) {
-    digitalWrite(LED_BUILTIN, HIGH);
     setRgbLed(0, 50, 0); // faint green
     delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
     setRgbLed(0, 0, 0);
     delay(100);
   }
+
+  // Initialize TinyML Shield Pushbutton (D13 and D12)
+  initTinyMLButton();
 }
 
 void loop() {
@@ -196,28 +221,43 @@ void loop() {
     // Read Temperature & Humidity
     float temperature = 0.0;
     float humidity = 0.0;
+    bool hasTemp = false;
+    bool hasHum = false;
+
     if (htsAvailable) {
       if (!isRev2Board) {
         readTempHumRev1(temperature, humidity);
       } else {
         readTempHumRev2(temperature, humidity);
       }
+      hasTemp = true;
+      hasHum = true;
     }
 
     // Read Barometer (LPS22HB reads in kPa, we convert to hPa: 1 kPa = 10 hPa)
     float pressureHpa = 0.0;
     if (baroAvailable) {
       pressureHpa = BARO.readPressure() * 10.0f;
+      // On Nano 33 BLE Sense Lite, HTS221/HS3003 is omitted by hardware design.
+      // We read ambient temperature from the LPS22HB Barometer on-chip thermometer:
+      if (!hasTemp) {
+        temperature = BARO.readTemperature();
+        hasTemp = true;
+      }
     }
 
     // Read Color & Proximity & Gesture
     int r = 0, g = 0, b = 0, ambient = 0;
-    int proximity = 255;
+    static int filteredProximity = 255;
     const char* gestureStr = "NONE";
 
     if (apdsAvailable) {
       if (APDS.proximityAvailable()) {
-        proximity = APDS.readProximity(); // 0 is closest, 255 is farthest
+        int rawP = APDS.readProximity(); // 0 is closest (touching), 255 is farthest
+        if (rawP >= 0 && rawP <= 255) {
+          // Low-pass exponential filter to eliminate sudden spikes or alternating 0/255:
+          filteredProximity = (filteredProximity * 2 + rawP) / 3;
+        }
       }
       if (APDS.colorAvailable()) {
         APDS.readColor(r, g, b, ambient);
@@ -236,9 +276,13 @@ void loop() {
 
     // Prepare JSON Telemetry packet
     StaticJsonDocument<384> doc;
-    if (htsAvailable) {
+    if (hasTemp) {
       doc["t"] = (float)((int)(temperature * 10)) / 10.0f;
+    }
+    if (hasHum) {
       doc["h"] = (float)((int)(humidity * 10)) / 10.0f;
+    } else {
+      doc["h"] = -1; // -1 indicates physical humidity chip is not fitted (Lite board)
     }
     if (baroAvailable) {
       doc["p"] = (float)((int)(pressureHpa * 10)) / 10.0f;
@@ -258,11 +302,15 @@ void loop() {
     doc["g"]  = g;
     doc["b"]  = b;
     doc["light"] = ambient;
-    doc["prox"] = proximity;
+    doc["prox"] = filteredProximity;
     if (strcmp(gestureStr, "NONE") != 0) {
       doc["gesture"] = gestureStr;
     }
     doc["sound"] = (int)soundRmsLevel;
+
+    // Read TinyML Shield Pushbutton (D13 or D12)
+    bool btnPressed = readTinyMLButton();
+    doc["btn"] = btnPressed ? 1 : 0;
 
     // Send single line JSON
     serializeJson(doc, Serial);

@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <block type="scratch_say">
           <value name="TEXT"><shadow type="text"><field name="TEXT">¡Hola Mundo!</field></shadow></value>
         </block>
+        <block type="scratch_change_size">
+          <value name="CHANGE"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+        </block>
+        <block type="scratch_set_size">
+          <value name="SIZE"><shadow type="math_number"><field name="NUM">100</field></shadow></value>
+        </block>
+        <block type="scratch_get_size"></block>
       </category>
 
       <!-- 🔊 SONIDO -->
@@ -65,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- 🟡 EVENTOS -->
       <category name="Eventos" colour="#FFBF00">
         <block type="scratch_when_flag"></block>
+        <block type="nano33_when_button"></block>
         <block type="nano33_when_gesture"></block>
         <block type="tm_when_class">
           <value name="CLASS_NAME"><shadow type="text"><field name="TEXT">Clase 1</field></shadow></value>
@@ -86,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- 🔷 SENSORES Y CONDICIONES -->
       <category name="Sensores" colour="#5CB1D6">
+        <block type="nano33_get_button"></block>
         <block type="logic_boolean"></block>
         <block type="logic_compare"></block>
         <block type="logic_operation"></block>
@@ -114,6 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </block>
         <block type="nano33_disconnect"></block>
         <block type="nano33_is_connected"></block>
+        <block type="nano33_get_button"></block>
+        <block type="nano33_get_button_state"></block>
+        <block type="nano33_when_button"></block>
         <block type="nano33_get_temp"></block>
         <block type="nano33_get_hum"></block>
         <block type="nano33_get_press"></block>
@@ -124,7 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <block type="nano33_get_prox"></block>
         <block type="nano33_get_gesture"></block>
         <block type="nano33_get_sound"></block>
-        <block type="nano33_set_led"></block>
+        <block type="nano33_set_rgb_power"></block>
+        <block type="nano33_set_rgb_color_palette"></block>
         <block type="nano33_set_rgb">
           <value name="R"><shadow type="math_number"><field name="NUM">255</field></shadow></value>
           <value name="G"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
@@ -192,6 +205,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const flagBtn = document.getElementById('btn-run');
   const stopBtn = document.getElementById('btn-stop');
 
+  // Global audio unlock on any user click
+  document.addEventListener('click', () => {
+    if (window.iScratchRuntime) {
+      window.iScratchRuntime.unlockAudio();
+    }
+  }, { passive: true });
+
+  const syncWorkspaceEventListeners = () => {
+    try {
+      if (!window.iScratchRuntime || window.iScratchRuntime.isRunning) return;
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const fn = new AsyncFunction('runtime', code);
+      fn(window.iScratchRuntime).catch(() => {});
+    } catch (e) {}
+  };
+  workspace.addChangeListener((e) => {
+    if (e.isUiEvent) return;
+    syncWorkspaceEventListeners();
+  });
+  setTimeout(syncWorkspaceEventListeners, 800);
+
   flagBtn.addEventListener('click', () => {
     try {
       if (window.iScratchRuntime) {
@@ -217,6 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnResetSprite) {
     btnResetSprite.addEventListener('click', () => {
       window.iScratchRuntime.resetSprite();
+    });
+  }
+
+  const spriteSizeInput = document.getElementById('sprite-size');
+  if (spriteSizeInput) {
+    spriteSizeInput.removeAttribute('readonly');
+    spriteSizeInput.addEventListener('change', () => {
+      const val = parseInt(spriteSizeInput.value, 10);
+      if (!isNaN(val) && window.iScratchRuntime) {
+        window.iScratchRuntime.setSize(val);
+      }
     });
   }
 
@@ -261,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const valProx = document.getElementById('val-prox');
   const proxFill = document.getElementById('prox-fill');
   const valGesture = document.getElementById('val-gesture');
+  const valBtn = document.getElementById('val-btn');
   const colorSwatch = document.getElementById('color-swatch');
   const valColorText = document.getElementById('val-color-text');
   const cube = document.getElementById('cube-3d');
@@ -270,8 +317,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.iScratchSerial.onTelemetry((t) => {
     if (valTemp) valTemp.textContent = (t.t !== null && t.t !== undefined && !isNaN(t.t)) ? Number(t.t).toFixed(1) : '--';
-    if (valHum) valHum.textContent = (t.h !== null && t.h !== undefined && !isNaN(t.h)) ? Number(t.h).toFixed(1) : '--';
+    if (valHum) {
+      if (t.h === -1) {
+        valHum.textContent = 'N/D';
+        valHum.title = 'No disponible en Nano 33 BLE Sense Lite (hardware omitido de fábrica)';
+      } else if (t.h !== null && t.h !== undefined && !isNaN(t.h)) {
+        valHum.textContent = Number(t.h).toFixed(1);
+        valHum.title = '';
+      } else {
+        valHum.textContent = '--';
+      }
+    }
     if (valPress) valPress.textContent = (t.p !== null && t.p !== undefined && !isNaN(t.p)) ? Number(t.p).toFixed(1) : '--';
+
+    // TinyML Shield Pushbutton
+    if (valBtn && t.btn !== undefined) {
+      if (t.btn === 1) {
+        valBtn.textContent = 'PRESIONADO';
+        valBtn.style.color = '#10B981';
+        valBtn.style.fontWeight = 'bold';
+      } else {
+        valBtn.textContent = 'NO PRESIONADO';
+        valBtn.style.color = '#64748B';
+        valBtn.style.fontWeight = 'normal';
+      }
+    }
 
     // Sound Meter
     if (valSound) valSound.textContent = t.sound !== undefined ? t.sound : 0;
@@ -281,7 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (valProx) valProx.textContent = t.prox !== undefined ? t.prox : '--';
     if (proxFill) {
       // 0 is closest (100%), 255 is far (0%)
-      const pct = Math.max(0, Math.min(100, Math.round(((255 - (t.prox || 255)) / 255) * 100)));
+      const pVal = (t.prox !== undefined) ? t.prox : 255;
+      const pct = Math.max(0, Math.min(100, Math.round(((255 - pVal) / 255) * 100)));
       proxFill.style.width = pct + '%';
     }
 
@@ -316,22 +387,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 7. Actuator Quick Test Controls
-  let ledBuiltinState = false;
-  const btnToggleLed = document.getElementById('btn-quick-led');
-  if (btnToggleLed) {
-    btnToggleLed.addEventListener('click', () => {
-      ledBuiltinState = !ledBuiltinState;
-      window.iScratchSerial.setBuiltinLed(ledBuiltinState);
-      btnToggleLed.classList.toggle('active', ledBuiltinState);
-      btnToggleLed.textContent = ledBuiltinState ? 'LED D13: ON' : 'LED D13: OFF';
-    });
-  }
-
+  // 7. Actuator Quick Test Controls: Onboard RGB LED (Pin D13 dedicated exclusively to TinyML shield button)
+  let rgbLedPower = false;
+  let lastRgbHex = '#00FF88';
+  const btnToggleRgb = document.getElementById('btn-toggle-rgb');
   const rgbColorPicker = document.getElementById('rgb-color-picker');
-  if (rgbColorPicker) {
+
+  if (btnToggleRgb && rgbColorPicker) {
+    btnToggleRgb.addEventListener('click', () => {
+      rgbLedPower = !rgbLedPower;
+      if (rgbLedPower) {
+        btnToggleRgb.classList.add('active');
+        btnToggleRgb.textContent = 'LED RGB: ON';
+        rgbColorPicker.disabled = false;
+        rgbColorPicker.style.cursor = 'pointer';
+        rgbColorPicker.style.opacity = '1';
+        rgbColorPicker.value = lastRgbHex;
+        const r = parseInt(lastRgbHex.slice(1, 3), 16);
+        const g = parseInt(lastRgbHex.slice(3, 5), 16);
+        const b = parseInt(lastRgbHex.slice(5, 7), 16);
+        window.iScratchSerial.setRgbLed(r, g, b);
+      } else {
+        btnToggleRgb.classList.remove('active');
+        btnToggleRgb.textContent = 'LED RGB: OFF';
+        rgbColorPicker.disabled = true;
+        rgbColorPicker.style.cursor = 'not-allowed';
+        rgbColorPicker.style.opacity = '0.45';
+        rgbColorPicker.value = '#000000';
+        window.iScratchSerial.setRgbLed(0, 0, 0);
+      }
+    });
+
     rgbColorPicker.addEventListener('input', (e) => {
+      if (!rgbLedPower) return;
       const hex = e.target.value;
+      lastRgbHex = hex;
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
@@ -536,6 +626,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 </next>
               </block>
             </next>
+          </block>
+        </statement>
+      </block>
+    </xml>`,
+
+    'button_grow': `<xml xmlns="https://developers.google.com/blockly/xml">
+      <block type="scratch_when_flag" x="50" y="50">
+        <statement name="STACK">
+          <block type="scratch_set_size">
+            <value name="SIZE"><shadow type="math_number"><field name="NUM">100</field></shadow></value>
+            <next>
+              <block type="scratch_say_for_secs">
+                <value name="TEXT"><shadow type="text"><field name="TEXT">¡Mantén presionado el botón de la shield para agrandarme!</field></shadow></value>
+                <value name="SECS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+                <next>
+                  <block type="scratch_forever">
+                    <statement name="DO">
+                      <block type="controls_if">
+                        <value name="IF0">
+                          <block type="nano33_get_button"></block>
+                        </value>
+                        <statement name="DO0">
+                          <block type="scratch_change_size">
+                            <value name="CHANGE"><shadow type="math_number"><field name="NUM">5</field></shadow></value>
+                          </block>
+                        </statement>
+                      </block>
+                    </statement>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+      <block type="nano33_when_button" x="50" y="320">
+        <field name="ACTION">release</field>
+        <statement name="DO">
+          <block type="scratch_play_sound">
+            <value name="FREQ"><shadow type="math_number"><field name="NUM">659</field></shadow></value>
+            <value name="DURATION"><shadow type="math_number"><field name="NUM">0.15</field></shadow></value>
           </block>
         </statement>
       </block>

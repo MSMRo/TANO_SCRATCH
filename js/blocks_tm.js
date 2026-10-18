@@ -57,20 +57,66 @@
     return 'await window.iScratchTM.startWebcam(document.getElementById("tm-webcam-canvas"));\n';
   });
 
-  // 3. Detener cámara y clasificador
-  Blockly.Blocks['tm_stop_webcam'] = {
+  // 2b. Iniciar cámara OV7675 (TinyML Shield) y clasificación
+  Blockly.Blocks['tm_start_ov7675'] = {
     init: function () {
       this.appendDummyInput()
-        .appendField('⏹️ detener cámara web y clasificador');
+        .appendField('👁️ iniciar cámara OV7675 y clasificador continuo');
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setColour(TM_COLOR);
-      this.setTooltip('Apaga la cámara web y detiene la inferencia de Teachable Machine.');
+      this.setTooltip('Conecta por Web Serial con el TinyML Shield (OV7675) en el Arduino Nano 33 BLE y clasifica el video en vivo.');
     }
   };
 
+  registerGen('tm_start_ov7675', function () {
+    return 'await window.iScratchTM.startOV7675(document.getElementById("tm-webcam-canvas"));\n';
+  });
+
+  // 2c. Cambiar resolución cámara OV7675
+  Blockly.Blocks['tm_set_ov7675_res'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('resolución OV7675')
+        .appendField(new Blockly.FieldDropdown([
+          ['80x60 (Ultra Fluido ~18 FPS)', '80x60'],
+          ['96x96 (Estándar TinyML)', '96x96'],
+          ['160x120 (QQVGA)', '160x120'],
+          ['176x144 (QCIF)', '176x144'],
+          ['320x240 (QVGA)', '320x240']
+        ]), 'RES');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(TM_COLOR);
+      this.setTooltip('Configura la resolución y tasa de fotogramas de la cámara OV7675.');
+    }
+  };
+
+  registerGen('tm_set_ov7675_res', function (block) {
+    const res = block.getFieldValue('RES') || '80x60';
+    return `window.iScratchTM.setOV7675Resolution('${res}');\n`;
+  });
+
+  // 3. Detener cámara y clasificador (Webcam u OV7675)
+  Blockly.Blocks['tm_stop_camera'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('⏹️ detener cámara y clasificador');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(TM_COLOR);
+      this.setTooltip('Apaga la cámara (Webcam u OV7675) y detiene la inferencia de Teachable Machine.');
+    }
+  };
+
+  registerGen('tm_stop_camera', function () {
+    return 'await window.iScratchTM.stopCamera();\n';
+  });
+
+  // Alias para retrocompatibilidad
+  Blockly.Blocks['tm_stop_webcam'] = Blockly.Blocks['tm_stop_camera'];
   registerGen('tm_stop_webcam', function () {
-    return 'window.iScratchTM.stopWebcam();\n';
+    return 'await window.iScratchTM.stopCamera();\n';
   });
 
   // 4. ¿Modelo cargado? (Booleano)

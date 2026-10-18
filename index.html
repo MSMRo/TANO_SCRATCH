@@ -253,12 +253,47 @@
         <div class="tm-panel-box">
           <div class="tm-url-input-group">
             <input type="text" id="tm-model-url" placeholder="https://teachablemachine.withgoogle.com/models/.../">
-            <button class="header-btn" id="btn-load-tm-model" style="background: #4285F4; color: #FFF;">Cargar</button>
+            <button class="header-btn" id="btn-load-tm-model" style="background: #4285F4; color: #FFF; white-space: nowrap;">Cargar</button>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="header-btn accent-btn" id="btn-toggle-webcam" style="flex: 1;">📷 Iniciar Cámara</button>
+          
+          <!-- Cámara Selector / Botones de Inicio -->
+          <div style="display: flex; gap: 6px;">
+            <button class="header-btn accent-btn" id="btn-toggle-webcam" style="flex: 1; font-size: 11px; padding: 6px 4px;" title="Iniciar cámara web de la computadora">
+              📷 Iniciar Cámara Web
+            </button>
+            <button class="header-btn" id="btn-toggle-ov7675" style="flex: 1; font-size: 11px; padding: 6px 4px; background: #00878F; color: #FFF;" title="Iniciar cámara OV7675 del Shield TinyML conectado al Nano 33 BLE">
+              👁️ Iniciar OV7675
+            </button>
           </div>
-          <div id="tm-status-msg" style="font-size: 11px; color: #64748B;">Ningún modelo cargado aún.</div>
+
+          <!-- Barra de controles y ajustes de la cámara OV7675 (visible al activar OV7675) -->
+          <div id="tm-ov7675-bar" style="display: none; background: #F1F5F9; padding: 6px 8px; border-radius: 6px; border: 1px solid #CBD5E1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+              <select id="tm-ov7675-res" style="flex: 1; font-size: 11px; padding: 3px 6px; border-radius: 4px; border: 1px solid #94A3B8; background: #FFF; color: #0F172A;">
+                <option value="80x60" selected>80x60 (Ultra Fluido ~18 FPS)</option>
+                <option value="96x96">96x96 (Estándar TinyML)</option>
+                <option value="160x120">160x120 (QQVGA)</option>
+                <option value="176x144">176x144 (QCIF)</option>
+                <option value="320x240">320x240 (QVGA)</option>
+              </select>
+              <button id="btn-ov7675-color" class="header-btn" style="font-size: 10px; padding: 3px 8px; background: #E2E8F0; color: #0F172A; border: 1px solid #94A3B8;" title="Alternar Color RGB565 / Escala de Grises">
+                🎨 RGB
+              </button>
+              <button id="btn-ov7675-snap" class="header-btn" style="font-size: 10px; padding: 3px 8px; background: #E2E8F0; color: #0F172A; border: 1px solid #94A3B8;" title="Tomar foto instantánea">
+                📸
+              </button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 10px; color: #64748B;">
+              <span id="tm-ov7675-fps">0.0 FPS</span>
+              <span id="tm-ov7675-res-label">80x60 RGB</span>
+              <span id="tm-ov7675-bw">0 KB/s</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div id="tm-status-msg" style="font-size: 11px; color: #64748B;">Ningún modelo cargado aún.</div>
+            <span id="tm-camera-badge" style="display: none; font-size: 10px; font-weight: 700; background: #00878F; color: #FFF; padding: 1px 6px; border-radius: 3px;">OV7675</span>
+          </div>
           
           <div class="tm-webcam-preview">
             <canvas id="tm-webcam-canvas" width="240" height="240"></canvas>
@@ -266,6 +301,12 @@
 
           <div class="tm-classes-container" id="tm-classes-list">
             <!-- Dynamic Class Confidence Bars -->
+          </div>
+
+          <!-- Ayuda de Firmware OV7675 -->
+          <div style="margin-top: 4px; padding: 6px 8px; background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 6px; font-size: 10px; color: #475569;">
+            <span style="font-weight: 700;">💡 Cámara OV7675:</span>
+            Requiere el firmware <code>Nano33BLE_OV7675_Streamer</code>. Puedes flashearlo en 1 clic ejecutando <code>firmware\cargar_firmware_ov7675.bat</code>.
           </div>
         </div>
       </div>
@@ -293,6 +334,7 @@
 
   <!-- Application Core Scripts -->
   <script src="js/webserial_manager.js"></script>
+  <script src="js/webserial_camera.js"></script>
   <script src="js/tm_manager.js"></script>
   <script src="js/stage_runtime.js"></script>
   <script src="js/blocks_scratch_core.js"></script>

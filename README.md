@@ -135,11 +135,13 @@ La categoría **Arduino Nano 33 BLE** (color `#00878F`) ofrece los siguientes bl
 
 ## 🧠 Bloques para Google Teachable Machine
 
-La categoría **Teachable Machine** (color `#4285F4`) permite integrar visión artificial:
+La categoría **Teachable Machine** (color `#4285F4`) permite integrar visión artificial tanto con cámara web convencional como con la cámara **OmniVision OV7675** del **TinyML Shield**:
 
 - `[🧠 cargar modelo Teachable Machine desde URL [ ... ]]`: Descarga el archivo `model.json` y `metadata.json` exportados desde [teachablemachine.withgoogle.com](https://teachablemachine.withgoogle.com/).
-- `[📷 iniciar cámara web y clasificador continuo]`: Activa la cámara en el panel lateral e inicia la inferencia a 30 FPS.
-- `[⏹️ detener cámara web y clasificador]`: Apaga la cámara y el clasificador.
+- `[📷 iniciar cámara web y clasificador continuo]`: Activa la cámara web de la computadora e inicia la inferencia continua.
+- `[👁️ iniciar cámara OV7675 y clasificador continuo]`: Conecta mediante Web Serial con la cámara **OV7675** del TinyML Shield en el Arduino Nano 33 BLE y clasifica los fotogramas en tiempo real.
+- `[resolución OV7675 [80x60 | 96x96 | 160x120 | 176x144 | 320x240]]`: Configura la resolución y tasa de fotogramas del sensor OV7675 dinámicamente.
+- `[⏹️ detener cámara y clasificador]`: Detiene la cámara activa (Webcam u OV7675) y la inferencia.
 - `<¿modelo IA cargado?>`: Indica si el modelo está listo para predecir.
 - `(🏆 clase predicha más probable)`: Nombre de la clase ganadora.
 - `(📊 confianza de predicción (%))`: Certeza de la predicción (\(0-100\%\)).
@@ -151,11 +153,16 @@ La categoría **Teachable Machine** (color `#4285F4`) permite integrar visión a
 
 ## ⚡ Firmware Especializado para Nano 33 BLE Sense
 
-El archivo `firmware/iScratch_Nano33BLE_Sense/iScratch_Nano33BLE_Sense.ino` está optimizado para transmitir los datos de todos los sensores a \(20\text{ Hz}\) (\(50\text{ ms}\)) en formato JSON compacto:
+TanoScratch dispone de dos firmwares optimizados según el modo de uso:
 
-```json
-{"t":24.5,"h":46.2,"p":1013.2,"ax":0.02,"ay":-0.01,"az":0.98,"gx":0.1,"gy":-0.3,"gz":0.0,"mx":-15.2,"my":32.1,"mz":-44.0,"r":120,"g":85,"b":35,"light":190,"prox":255,"gesture":"NONE","sound":18}
-```
+### 1. Firmware de Telemetría Multisensores (`iScratch_Nano33BLE_Sense.ino`)
+Transmite los datos de todos los sensores (IMU, Barómetro, Temperatura, Humedad, Color RGBC, Proximidad, Gestos, Micrófono y Botón) a \(20\text{ Hz}\) en formato JSON compacto:
+- Script de carga 1-clic: `firmware\cargar_firmware_nano33ble.bat`
+
+### 2. Firmware de Cámara OV7675 Streamer (`Nano33BLE_OV7675_Streamer.ino`)
+Transmite el flujo de video de alta velocidad del sensor OmniVision OV7675 del TinyML Shield directamente por USB CDC Serial (\(115200\) baudios) con protocolo de sincronización por paquetes (`0xAA 0x55 0xAA 0x55`), alcanzando entre \(15\) y \(20\text{ FPS}\) en resoluciones como \(80\times 60\) y \(96\times 96\):
+- Script de carga 1-clic: `firmware\cargar_firmware_ov7675.bat`
+- Script de compilación: `firmware\compilar_firmware_ov7675.bat`
 
 ### Grabación del Firmware:
 1. Conecta tu **Arduino Nano 33 BLE Sense** por USB.

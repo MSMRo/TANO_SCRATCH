@@ -175,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <value name="URL"><shadow type="text"><field name="TEXT">https://teachablemachine.withgoogle.com/models/v1/</field></shadow></value>
         </block>
         <block type="tm_start_webcam"></block>
-        <block type="tm_stop_webcam"></block>
+        <block type="tm_start_ov7675"></block>
+        <block type="tm_set_ov7675_res"></block>
+        <block type="tm_stop_camera"></block>
         <block type="tm_is_model_loaded"></block>
         <block type="tm_get_top_class"></block>
         <block type="tm_get_top_confidence"></block>
@@ -299,6 +301,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.iScratchSerial.connected) {
       await window.iScratchSerial.disconnect();
     } else {
+      // Si la cámara OV7675 está usando el puerto serial, detenerla primero
+      if (window.iScratchTM && window.iScratchTM.currentSource === 'ov7675') {
+        await window.iScratchTM.stopOV7675();
+        const btnToggleOv7675 = document.getElementById('btn-toggle-ov7675');
+        const tmOv7675Bar = document.getElementById('tm-ov7675-bar');
+        const tmCameraBadge = document.getElementById('tm-camera-badge');
+        if (btnToggleOv7675) {
+          btnToggleOv7675.textContent = '👁️ Iniciar OV7675';
+          btnToggleOv7675.style.background = '#00878F';
+        }
+        if (tmOv7675Bar) tmOv7675Bar.style.display = 'none';
+        if (tmCameraBadge) tmCameraBadge.style.display = 'none';
+      }
       const baud = baudSelect ? baudSelect.value : 115200;
       await window.iScratchSerial.connect(baud);
     }
@@ -493,10 +508,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 9. Teachable Machine Controls
+  // 9. Teachable Machine Controls (Webcam & OV7675 Camera Streamer)
   const tmModelUrlInput = document.getElementById('tm-model-url');
   const btnLoadTmModel = document.getElementById('btn-load-tm-model');
   const btnToggleWebcam = document.getElementById('btn-toggle-webcam');
+  const btnToggleOv7675 = document.getElementById('btn-toggle-ov7675');
+  const tmOv7675Bar = document.getElementById('tm-ov7675-bar');
+  const tmOv7675Res = document.getElementById('tm-ov7675-res');
+  const btnOv7675Color = document.getElementById('btn-ov7675-color');
+  const btnOv7675Snap = document.getElementById('btn-ov7675-snap');
+  const tmOv7675Fps = document.getElementById('tm-ov7675-fps');
+  const tmOv7675ResLabel = document.getElementById('tm-ov7675-res-label');
+  const tmOv7675Bw = document.getElementById('tm-ov7675-bw');
+  const tmCameraBadge = document.getElementById('tm-camera-badge');
   const tmStatusMsg = document.getElementById('tm-status-msg');
   const tmClassesList = document.getElementById('tm-classes-list');
   const tmCanvas = document.getElementById('tm-webcam-canvas');
@@ -517,17 +541,139 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- Botón Iniciar / Detener Cámara Web ---
   if (btnToggleWebcam) {
     btnToggleWebcam.addEventListener('click', async () => {
-      if (window.iScratchTM.isClassifying) {
+      if (window.iScratchTM.isClassifying && window.iScratchTM.currentSource === 'webcam') {
         window.iScratchTM.stopWebcam();
-        btnToggleWebcam.textContent = '📷 Iniciar Cámara';
+        btnToggleWebcam.textContent = '📷 Iniciar Cámara Web';
+        btnToggleWebcam.style.background = '';
+        if (tmCameraBadge) tmCameraBadge.style.display = 'none';
       } else {
-        await window.iScratchTM.startWebcam(tmCanvas);
-        btnToggleWebcam.textContent = '⏹️ Detener Cámara';
+        // Reset interfaz OV7675 si estaba activa
+        if (btnToggleOv7675) {
+          btnToggleOv7675.textContent = '👁️ Iniciar OV7675';
+          btnToggleOv7675.style.background = '#00878F';
+        }
+        if (tmOv7675Bar) tmOv7675Bar.style.display = 'none';
+
+        btnToggleWebcam.textContent = 'Iniciando...';
+        const ok = await window.iScratchTM.startWebcam(tmCanvas);
+        if (ok) {
+          btnToggleWebcam.textContent = '⏹️ Detener Cámara Web';
+          btnToggleWebcam.style.background = '#DC2626';
+          if (tmCameraBadge) {
+            tmCameraBadge.textContent = 'Webcam PC';
+            tmCameraBadge.style.background = '#2563EB';
+            tmCameraBadge.style.display = 'inline-block';
+          }
+        } else {
+          btnToggleWebcam.textContent = '📷 Iniciar Cámara Web';
+          btnToggleWebcam.style.background = '';
+        }
       }
     });
   }
+
+  // --- Botón Iniciar / Detener Cámara OV7675 (TinyML Shield) ---
+  if (btnToggleOv7675) {
+    btnToggleOv7675.addEventListener('click', async () => {
+      if (window.iScratchTM.isClassifying && window.iScratchTM.currentSource === 'ov7675') {
+        await window.iScratchTM.stopOV7675();
+        btnToggleOv7675.textContent = '👁️ Iniciar OV7675';
+        btnToggleOv7675.style.background = '#00878F';
+        if (tmOv7675Bar) tmOv7675Bar.style.display = 'none';
+        if (tmCameraBadge) tmCameraBadge.style.display = 'none';
+      } else {
+        // Reset interfaz Cámara Web si estaba activa
+        if (btnToggleWebcam) {
+          btnToggleWebcam.textContent = '📷 Iniciar Cámara Web';
+          btnToggleWebcam.style.background = '';
+        }
+
+        btnToggleOv7675.textContent = 'Conectando...';
+        const baud = baudSelect ? baudSelect.value : 115200;
+        const ok = await window.iScratchTM.startOV7675(tmCanvas, baud);
+        if (ok) {
+          btnToggleOv7675.textContent = '⏹️ Detener OV7675';
+          btnToggleOv7675.style.background = '#DC2626';
+          if (tmOv7675Bar) tmOv7675Bar.style.display = 'block';
+          if (tmCameraBadge) {
+            tmCameraBadge.textContent = 'OV7675';
+            tmCameraBadge.style.background = '#00878F';
+            tmCameraBadge.style.display = 'inline-block';
+          }
+        } else {
+          btnToggleOv7675.textContent = '👁️ Iniciar OV7675';
+          btnToggleOv7675.style.background = '#00878F';
+          if (tmOv7675Bar) tmOv7675Bar.style.display = 'none';
+          if (tmCameraBadge) tmCameraBadge.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  // Controles OV7675: Cambio dinámico de resolución
+  if (tmOv7675Res) {
+    tmOv7675Res.addEventListener('change', () => {
+      const res = tmOv7675Res.value;
+      window.iScratchTM.setOV7675Resolution(res);
+      if (tmOv7675ResLabel) tmOv7675ResLabel.textContent = `${res} RGB`;
+    });
+  }
+
+  // Controles OV7675: Alternar RGB / Blanco y Negro
+  let ov7675IsGray = false;
+  if (btnOv7675Color) {
+    btnOv7675Color.addEventListener('click', () => {
+      ov7675IsGray = !ov7675IsGray;
+      window.iScratchTM.setOV7675ColorMode(ov7675IsGray);
+      btnOv7675Color.textContent = ov7675IsGray ? '⚪ Grises' : '🎨 RGB';
+      btnOv7675Color.style.background = ov7675IsGray ? '#64748B' : '#E2E8F0';
+      btnOv7675Color.style.color = ov7675IsGray ? '#FFF' : '#0F172A';
+      if (tmOv7675ResLabel) {
+        tmOv7675ResLabel.textContent = `${tmOv7675Res ? tmOv7675Res.value : '80x60'} ${ov7675IsGray ? 'GRIS' : 'RGB'}`;
+      }
+    });
+  }
+
+  // Controles OV7675: Captura instantánea PNG
+  if (btnOv7675Snap) {
+    btnOv7675Snap.addEventListener('click', () => {
+      const dataUrl = window.iScratchTM.getOV7675Snapshot();
+      if (dataUrl) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `captura_ov7675_${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
+  }
+
+  // Métricas en tiempo real de la cámara OV7675 (FPS, resolución, KB/s)
+  window.iScratchTM.onMetrics((m) => {
+    if (tmOv7675Fps) tmOv7675Fps.textContent = `${m.fps} FPS`;
+    if (tmOv7675ResLabel) tmOv7675ResLabel.textContent = `${m.width}x${m.height} ${m.format}`;
+    if (tmOv7675Bw) tmOv7675Bw.textContent = `${m.bandwidth} KB/s`;
+  });
+
+  // Estado general de Teachable Machine
+  window.iScratchTM.onStatusChange((status, details) => {
+    if (tmStatusMsg) {
+      if (status === 'loaded' || status === 'classifying') {
+        tmStatusMsg.textContent = details;
+        tmStatusMsg.style.color = '#10B981';
+      } else if (status === 'error') {
+        tmStatusMsg.textContent = details;
+        tmStatusMsg.style.color = '#EF4444';
+      } else {
+        tmStatusMsg.textContent = details;
+        tmStatusMsg.style.color = '#64748B';
+      }
+    }
+  });
 
   function _renderTmClassRows(classes) {
     if (!tmClassesList) return;

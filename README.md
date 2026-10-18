@@ -2,6 +2,8 @@
 
 > **Plataforma abierta basada en Scratch para Arduino Nano 33 BLE Sense y Google Teachable Machine con Tano la mascota de la UPCH y conectividad nativa Web Serial.**
 
+![](./imgs/Screenshot%202026-10-17%20235335.png)
+
 ---
 
 ## 📋 Tabla de Contenidos
